@@ -604,7 +604,7 @@ class Gen:
 
 
 CSS = """
-html{scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
+html{-webkit-tap-highlight-color:transparent;scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
 section{position:relative;overflow:hidden;min-height:100vh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
   padding:64px 40px 110px 24px;box-sizing:border-box}
 @keyframes drift{to{background-position:100% 100%}}@keyframes pulse{to{background-size:400% 400%;background-position:60% 40%}}
@@ -698,7 +698,8 @@ function fade(a,to){const from=a.volume,t0=performance.now();cancelAnimationFram
 function play(sec){
   const src=sec&&sec.dataset.audio,next=src&&(players[src]||=Object.assign(new Audio(src),{loop:true,volume:0}));
   if(next&&!next._seeked)next.addEventListener('loadedmetadata',()=>{next.currentTime=next.duration*.35},{once:true}),next._seeked=1;
-  if(cur&&(cur!==next||!sound))fade(cur,0);
+  // fade out every other player, not just the last one: fast scrolling could leave a half-faded song running
+  Object.values(players).forEach(a=>{if(a!==next||!sound)a.paused?cancelAnimationFrame(a._f):fade(a,0)});
   if(next&&sound){next.play().catch(()=>{});fade(next,1)}
   cur=next||null;secs.forEach(s=>s.classList.toggle('playing',sound&&s===sec&&!!next));
 }
@@ -742,9 +743,20 @@ document.fonts.ready.then(()=>{
     while(f>(+t.dataset.min||14)&&t.getComputedTextLength()>w){f*=.94;t.setAttribute('font-size',f.toFixed(1))}});
   document.querySelectorAll('text[data-w]').forEach(t=>{const w=+t.dataset.w;let s=t.textContent;
     while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}})});
-document.addEventListener('keydown',ev=>{const i=secs.indexOf(active);
-  if(['ArrowDown','PageDown',' '].includes(ev.key)&&secs[i+1]){ev.preventDefault();secs[i+1].scrollIntoView()}
-  if(['ArrowUp','PageUp'].includes(ev.key)&&secs[i-1]){ev.preventDefault();secs[i-1].scrollIntoView()}});
+let tgt=null;  // pending target while a smooth scroll runs, so quick taps queue up instead of being lost
+function go(d){
+  const i=tgt??secs.reduce((b,s,j)=>Math.abs(s.getBoundingClientRect().top)<Math.abs(secs[b].getBoundingClientRect().top)?j:b,0),t=secs[i+d];
+  if(!t)return;tgt=i+d;t.scrollIntoView();clearTimeout(go.t);go.t=setTimeout(()=>tgt=null,900);return true}
+document.addEventListener('keydown',ev=>{
+  if(['ArrowDown','PageDown',' '].includes(ev.key)&&go(1))ev.preventDefault();
+  if(['ArrowUp','PageUp'].includes(ev.key)&&go(-1))ev.preventDefault()});
+// tap/click to advance (left edge goes back), like stories; scrolling still works
+document.addEventListener('click',ev=>{
+  if(ev.target.closest('button,a,input')||String(getSelection()).length)return;
+  go(ev.clientX<innerWidth*.25?-1:1)});
+// background tab or screen off: rAF fades stall, so pause hard and resume on return
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)Object.values(players).forEach(a=>{cancelAnimationFrame(a._f);a.pause()});else play(active)});
 """
 
 
