@@ -57,6 +57,10 @@ BACKGROUNDS = [  # per-section background from its own --a/--b, and the size the
     ("conic-gradient(from {ang}deg at 50% 50%,var(--a),var(--b),var(--a))", "220% 220%"),
     ("linear-gradient({ang}deg,var(--a) 50%,var(--b) 50%)", "250% 250%"),
     ("repeating-linear-gradient({ang}deg,var(--a) 0 40px,var(--b) 40px 80px)", "200% 200%"),
+    ("repeating-radial-gradient(circle at 20% 80%,var(--a) 0 30px,var(--b) 30px 60px)", "180% 180%"),
+    ("linear-gradient({ang}deg,var(--b) 0 33%,var(--a) 33% 66%,var(--b) 66%)", "250% 250%"),
+    ("radial-gradient(ellipse at 50% 120%,var(--b),transparent 60%),linear-gradient(var(--a),var(--a))", "140% 140%"),
+    ("repeating-conic-gradient(from {ang}deg at 50% 50%,var(--a) 0 15deg,var(--b) 15deg 30deg)", "200% 200%"),
 ]
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 try:  # bundled OFL variable fonts (scripts/fetch_fonts.py); without them we fall back to system stacks
@@ -68,8 +72,8 @@ PARAMETRIC = {"XOPQ", "YOPQ", "YTAS", "YTDE", "YTFI", "YTLC", "YTUC", "GRAD", "X
 BINARY = {"WONK", "CRSV"}
 TEXTURED = {"Doto", "Sixtyfour", "Bitcount Grid Double", "Handjet", "Monoton", "Kablammo"}  # great big, unreadable at card size
 LIMIT = {"BLED": (0, 20), "SCAN": (-15, 30), "XROT": (-25, 25), "YROT": (-25, 25)}  # beyond these glyphs stop reading as text
-CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings"]
-GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡"
+CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings", "triangles", "diamonds", "crosses", "bricks", "scales"]
+GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡♬✿❖✸☾◆"
 
 
 class Gen:
@@ -89,10 +93,10 @@ class Gen:
         self.head_v = r.sample(["plain", "letters", "mark", "marquee"], r.randint(2, 3))
         self.list_v = r.sample(["list", "podium", "tiles", "cloud", "ticker"], 3)
         self.chart_v = r.sample(["bars", "dots", "line", "radial", "heat"], 3)
-        self.decor_v = r.sample(["blob", "rings", "scatter", "waves", "halftone", "glyph", "lines"], r.randint(2, 3))
+        self.decor_v = r.sample(["blob", "rings", "scatter", "waves", "halftone", "glyph", "lines", "grid", "arcs", "confetti", "stars", "spiral", "contours"], r.randint(2, 3))
         self.aligns = r.sample(["left", "left", "center", "right"], r.randint(1, 2))
         self.valigns = r.sample(["center", "center", "start", "end"], r.randint(1, 2))
-        self.label_v = r.choice(["none", "index", "fraction", "line", "bullet", "slash", "bracket"])
+        self.label_v = r.choice(["none", "index", "fraction", "line", "bullet", "slash", "bracket", "dash", "hash"])
         self._card()
 
     # ---- primitives ----
@@ -188,13 +192,15 @@ class Gen:
         self.light = r.random() < .3  # pastel slides with dark text, otherwise deep slides with white text
         self.fg, self.inv = ("#111111", "#ffffff") if self.light else ("#ffffff", "#111111")
         self.h0, sat = r.random(), r.choice([(.25, .45), (.55, .75), (.7, .95), (.3, .9)])
-        scheme, d = r.choice(["analogous", "rainbow", "golden", "duo", "mono"]), r.uniform(.02, .12)
+        scheme, d = r.choice(["analogous", "rainbow", "golden", "duo", "mono", "triad", "split", "tetrad", "square", "pentad", "wave", "warm", "cool"]), r.uniform(.02, .12)
         shift = r.uniform(.04, .25) * self.sign()
         base_l = (.82, .92) if self.light else (.22, .42)
         out = []
         for i in range(n):
             h = self.h0 + {"analogous": i * d / 2, "rainbow": i * d, "golden": i * .382,
-                           "duo": (i % 2) * .5, "mono": 0}[scheme] + r.uniform(-.02, .02)
+                           "duo": (i % 2) * .5, "mono": 0, "triad": (i % 3) / 3, "split": (0, .42, .58)[i % 3],
+                           "tetrad": (0, .17, .5, .67)[i % 4], "square": (i % 4) / 4, "pentad": i * .2,
+                           "wave": .12 * math.sin(i * 1.3), "warm": .97 - self.h0 + i * .03 % .14, "cool": .5 - self.h0 + i * .04 % .2}[scheme] + r.uniform(-.02, .02)
             out.append(tuple(readable(hh, r.uniform(*base_l), r.uniform(*sat), self.fg) for hh in (h, h + shift)))
         return out
 
@@ -224,7 +230,7 @@ class Gen:
 
     def _type(self):
         r = self.r
-        effect = r.choice(["none", "none", "outline", "extrude", "echo", "offset", "glow"])
+        effect = r.choice(["none", "none", "outline", "extrude", "echo", "offset", "glow", "shadow", "duotone"])
         if MANIFEST:
             disp = r.choice([n for n, f in MANIFEST.items() if "display" in f["roles"]])
             body = r.choice([n for n, f in MANIFEST.items() if "body" in f["roles"] and n != disp])
@@ -262,7 +268,9 @@ class Gen:
               "echo": "text-shadow:" + ",".join(f"{dx * i * o * .004:.3f}em {dy * i * o * .004:.3f}em 0 color-mix(in srgb,var(--fg) {60 - i * 15}%,transparent)"
                                                  for i in range(1, 4)) + ";",
               "offset": f"text-shadow:{dx * o * .012:.3f}em {dy * o * .012:.3f}em 0 color-mix(in srgb,var(--fg) 30%,var(--b));",
-              "glow": f"text-shadow:0 0 {r.randint(12, 40)}px color-mix(in srgb,var(--fg) 60%,transparent);"}[effect]
+              "glow": f"text-shadow:0 0 {r.randint(12, 40)}px color-mix(in srgb,var(--fg) 60%,transparent);",
+              "shadow": f"text-shadow:{dx * .04:.2f}em {abs(dy) * .06 + .02:.2f}em {r.randint(8, 24)}px #0008;",
+              "duotone": f"text-shadow:{dx * o * .008:.3f}em {dy * o * .008:.3f}em 0 var(--b),{-dx * o * .008:.3f}em {-dy * o * .008:.3f}em 0 color-mix(in srgb,var(--fg) 40%,var(--a));"}[effect]
         self.css.append(
             f".disp{{font-family:{self.head_ff};font-weight:{self.hw};font-variation-settings:{self.head_fvs};"
             f"letter-spacing:{self.f(-.05, .08)}em;text-transform:{r.choice(['none', 'none', 'uppercase', 'lowercase'])};"
@@ -290,11 +298,12 @@ class Gen:
         accent = readable(r.random(), .55, r.uniform(.65, .95), ink, 3)
         p1, p2 = r.choice([(ink, bg), (ink, accent), (bg, ink), (accent, bg)])
         self.card = {"bg": bg, "ink": ink, "accent": accent, "p1": p1, "p2": p2,
-                     "layout": r.choice(["band", "banner", "poster", "vinyl"]), "pattern": r.choice(CARD_PATTERNS),
+                     "layout": r.choice(["band", "banner", "poster", "vinyl", "polaroid", "type"]), "pattern": r.choice(CARD_PATTERNS),
                      "tile": r.choice([12, 16, 20, 24]), "radius": r.choice([0, 8, 16, 24, 32]), "outline": r.random() < .5,
                      "sticker": r.random() < .55, "divider": r.choice(["none", "line", "dots"]), "glyph": r.choice(GLYPHS),
                      "art_r": r.choice([0, 0, 10, 24]), "tilt": r.choice([0, 0, -3, 3, -6]),
-                     "footer": r.choice(["MY {y} WRAPPED", "{y} · ON REPEAT", "{y} IN SOUND", "WRAPPED {y}", "{y} · HEARD IT ALL"])}
+                     "footer": r.choice(["MY {y} WRAPPED", "{y} · ON REPEAT", "{y} IN SOUND", "WRAPPED {y}", "{y} · HEARD IT ALL",
+                                         "{y} · TURNED UP", "SOUNDTRACK OF {y}", "{y} · NO SKIPS", "{y} ON LOOP"])}
 
     # ---- summary card: one generated SVG, shown on the page and rasterized as-is for "Save image" ----
     def _t(self, x, y, txt, size, head=True, w=None, anchor="start", fill=None, maxw=None, extra=""):
@@ -318,7 +327,12 @@ class Gen:
                 "waves": f'<path d="M0,{S / 2} Q{S / 4},{S * .15} {S / 2},{S / 2} T{S},{S / 2}" fill="none" stroke="{p1}" stroke-width="2"/>',
                 "zigzag": f'<path d="M0,{S * .7} L{S / 2},{S * .3} L{S},{S * .7}" fill="none" stroke="{p1}" stroke-width="2"/>',
                 "plus": f'<path d="M{S / 2},{S * .25}V{S * .75}M{S * .25},{S / 2}H{S * .75}" stroke="{p1}" stroke-width="2"/>',
-                "rings": f'<circle cx="{S / 2}" cy="{S / 2}" r="{S * .32:.1f}" fill="none" stroke="{p1}" stroke-width="1.5"/>'}[k]
+                "rings": f'<circle cx="{S / 2}" cy="{S / 2}" r="{S * .32:.1f}" fill="none" stroke="{p1}" stroke-width="1.5"/>',
+                "triangles": f'<path d="M0,{S} L{S / 2},0 L{S},{S}Z" fill="{p1}"/>',
+                "diamonds": f'<path d="M{S / 2},0 L{S},{S / 2} L{S / 2},{S} L0,{S / 2}Z" fill="{p1}"/>',
+                "crosses": f'<path d="M{S * .3},{S * .3}L{S * .7},{S * .7}M{S * .7},{S * .3}L{S * .3},{S * .7}" stroke="{p1}" stroke-width="2"/>',
+                "bricks": f'<path d="M0,1H{S}M0,{S / 2 + 1}H{S}M{S / 2},1V{S / 2 + 1}M1,{S / 2 + 1}V{S}" stroke="{p1}" stroke-width="2" fill="none"/>',
+                "scales": f'<path d="M0,{S / 2} A{S / 2},{S / 2} 0 0,0 {S},{S / 2} M{-S / 2},{S} A{S / 2},{S / 2} 0 0,0 {S / 2},{S} M{S / 2},{S} A{S / 2},{S / 2} 0 0,0 {S * 1.5},{S}" fill="none" stroke="{p1}" stroke-width="1.5"/>'}[k]
         rot = ' patternTransform="rotate(45)"' if k == "stripes" else ""
         period = S * 2 ** .5 if k == "stripes" else S
         self.css.append(f"@keyframes cpat{{to{{transform:translateX({period * 2:.2f}px)}}}}"
@@ -385,6 +399,16 @@ class Gen:
                    + f'<rect width="{W}" height="330" fill="url(#cfade)"/>' + self._year(20, 290, 112, anchor="start", fill=c["accent"], fit=360)
                    + self._patfill(0, 330, W, 18, period))
             spots, info_y = [(340, 60)], 384
+        elif L == "polaroid":  # a tilted instant photo on the pattern, the period written in its margin
+            tilt = c["tilt"] or r.choice([-4, 4])
+            top = (self._patfill(0, 0, W, 350, period)
+                   + f'<g transform="rotate({tilt} 200 175)"><rect x="70" y="16" width="260" height="316" fill="{c["bg"]}" stroke="{c["ink"]}" stroke-width="1.5"/>'
+                   + self._art(d, 86, 32, 228, 228) + self._year(200, 296, 40, fit=228) + "</g>")
+            spots, info_y = [(342, 300), (58, 52)], 384
+        elif L == "type":  # the period set huge on an accent block, a round cover tucked under it
+            top = (f'<rect width="{W}" height="340" fill="{c["accent"]}"/>' + self._year(W / 2, 112, 140, fit=360)
+                   + self._art(d, 130, 186, 140, 140, circle=True) + self._patfill(0, 340, W, 14, period))
+            spots, info_y = [(338, 290), (62, 290)], 386
         else:  # vinyl
             rec = "#111111" if lum(c["ink"]) < .5 else "#0d0d0d"
             grooves = "".join(f'<circle cx="200" cy="175" r="{rr}" fill="none" stroke="#fff" stroke-opacity=".09" stroke-width=".7"/>'
@@ -442,7 +466,7 @@ class Gen:
     def label(self, text, idx, total, t):
         pre, post = {"none": ("", ""), "index": (f"<b>{idx:02d}</b>&ensp;", ""), "fraction": (f"<b>{idx:02d}/{total:02d}</b>&ensp;", ""),
                      "line": ("<i class=ln></i>", ""), "bullet": ("●&ensp;", ""), "slash": ("//&ensp;", ""),
-                     "bracket": ("[&ensp;", "&ensp;]")}[self.label_v]
+                     "bracket": ("[&ensp;", "&ensp;]"), "dash": ("—&ensp;", ""), "hash": (f"#{idx}&ensp;", "")}[self.label_v]
         return self.anim(f"<small class=lbl>{pre}{e(text)}{post}</small>", t)
 
     def text(self, html_, t, cls=""):
@@ -596,6 +620,42 @@ class Gen:
         elif k == "glyph":
             body = (f'<text x="{r.uniform(20, 80):.0f}" y="{r.uniform(40, 90):.0f}" font-size="{r.randint(50, 110)}" style="font-family:var(--head)" text-anchor=middle '
                     f'fill="var(--fg)" opacity="{self.f(.05, .1)}" transform="rotate({r.randint(-30, 30)} 50 50)">{r.choice(GLYPHS)}</text>')
+        elif k == "grid":
+            gap, dot = r.choice([6, 8, 10]), r.random() < .5
+            cells = [(x, y) for y in range(gap // 2, 101, gap) for x in range(gap // 2, 101, gap)]
+            body = (f'<g fill="var(--fg)" opacity="{self.f(.1, .18)}">' + "".join(
+                f'<circle cx="{x}" cy="{y}" r=".6"/>' if dot else f'<rect x="{x - .5}" y="{y - .5}" width="1" height="1"/>' for x, y in cells) + "</g>")
+        elif k == "arcs":
+            cx, cy, body = r.choice([0, 100]), r.choice([0, 100]), ""
+            for i in range(1, r.randint(5, 12)):
+                rr = i * r.uniform(7, 11)
+                body += (f'<circle cx="{cx}" cy="{cy}" r="{rr:.1f}" fill=none stroke="var(--fg)" stroke-width="{self.f(.6, 2)}" '
+                         f'pathLength=100 stroke-dasharray="{r.randint(10, 40)} {r.randint(5, 20)}" opacity="{self.f(.08, .18)}"/>')
+        elif k == "confetti":
+            body = "".join(f'<rect x="{r.uniform(0, 100):.1f}" y="{r.uniform(0, 100):.1f}" width="{r.uniform(1, 3):.1f}" height="{r.uniform(.4, 1):.1f}" '
+                           f'transform="rotate({r.randint(0, 180)} 50 50)" fill="var(--{r.choice(["fg", "fg", "b"])})" opacity="{self.f(.15, .3)}"/>' for _ in range(r.randint(20, 45)))
+        elif k == "stars":  # four-point sparkles
+            body = ""
+            for _ in range(r.randint(5, 14)):
+                x, y, sz = r.uniform(0, 100), r.uniform(0, 100), r.uniform(1.5, 6)
+                q = sz * .18
+                body += (f'<path d="M{x:.1f},{y - sz:.1f}Q{x + q:.1f},{y - q:.1f} {x + sz:.1f},{y:.1f}Q{x + q:.1f},{y + q:.1f} {x:.1f},{y + sz:.1f}'
+                         f'Q{x - q:.1f},{y + q:.1f} {x - sz:.1f},{y:.1f}Q{x - q:.1f},{y - q:.1f} {x:.1f},{y - sz:.1f}Z" fill="var(--fg)" opacity="{self.f(.12, .25)}"/>')
+        elif k == "spiral":
+            cx, cy, turns, grow = r.uniform(20, 80), r.uniform(20, 80), r.uniform(3, 7), r.uniform(1.5, 3)
+            pts = " L".join(f"{cx + grow * th * math.cos(th):.1f},{cy + grow * th * math.sin(th):.1f}"
+                            for th in (i * .15 for i in range(int(turns * 2 * math.pi / .15))))
+            body = f'<path d="M{pts}" fill=none stroke="var(--fg)" stroke-width="{self.f(.3, .8)}" opacity="{self.f(.1, .2)}"/>'
+        elif k == "contours":  # topographic map: one wobbly ring, nested
+            cx, cy = r.uniform(10, 90), r.uniform(10, 90)
+            harm = [(kk, r.uniform(0, .12), r.uniform(0, 6.3)) for kk in (2, 3, 5)]
+            body = ""
+            for j in range(1, r.randint(6, 12)):
+                R = j * r.uniform(5, 8)
+                pts = [f"{cx + R * (1 + sum(a * math.sin(kk * th + ph + j * .3) for kk, a, ph in harm)) * math.cos(th):.1f},"
+                       f"{cy + R * (1 + sum(a * math.sin(kk * th + ph + j * .3) for kk, a, ph in harm)) * math.sin(th):.1f}"
+                       for th in (i / 48 * 2 * math.pi for i in range(48))]
+                body += f'<path d="M{" L".join(pts)}Z" fill=none stroke="var(--fg)" stroke-width=".35" opacity="{self.f(.12, .22)}"/>'
         else:  # lines
             ang, gap = r.randint(0, 180), r.uniform(3, 8)
             body = (f'<g transform="rotate({ang} 50 50)" stroke="var(--fg)" stroke-width="{self.f(.15, .4)}" opacity="{self.f(.1, .2)}">'
