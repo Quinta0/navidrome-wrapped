@@ -66,6 +66,7 @@ except FileNotFoundError:
 FALLBACK = {"Serif": "transitional", "Sans Serif": "grotesk", "Display": "grotesk", "Monospace": "mono", "Handwriting": "hand"}
 PARAMETRIC = {"XOPQ", "YOPQ", "YTAS", "YTDE", "YTFI", "YTLC", "YTUC", "GRAD", "XTRA"}  # Roboto Flex internals: stay near default
 BINARY = {"WONK", "CRSV"}
+TEXTURED = {"Doto", "Sixtyfour", "Bitcount Grid Double", "Handjet", "Monoton", "Kablammo"}  # great big, unreadable at card size
 LIMIT = {"BLED": (0, 20), "SCAN": (-15, 30), "XROT": (-25, 25), "YROT": (-25, 25)}  # beyond these glyphs stop reading as text
 CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings"]
 GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡"
@@ -344,7 +345,8 @@ class Gen:
                         extra=f'dominant-baseline="central" data-fs="{w - 36}" data-min="9"') for ln, dy in zip(lines, dys))
         else:
             inner = (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c["ink"]}"/>'
-                     + self._t(x + w / 2, y + h / 2, d["name"], 28, anchor="middle", fill=c["bg"], maxw=w - 24, extra=f'dominant-baseline="central" data-fs="{w - 24}"'))
+                     + self._t(x + w / 2, y + h / 2, d["name"], 28, head=not (self.fonts and self.fonts[0] in TEXTURED), w=700, anchor="middle", fill=c["bg"], maxw=w - 24,
+                               extra=f'dominant-baseline="central" data-fs="{w - 24}"'))
         return f'{clip}<g clip-path="url(#cart)">{inner}</g>'
 
     def _year(self, x, y, size, anchor="middle", rotate=None, fill=None, fit=360):
@@ -359,9 +361,9 @@ class Gen:
         n, r1, r2 = r.randint(10, 18), 40, r.uniform(30, 35)
         pts = " ".join(f"{cx + (r1 if i % 2 == 0 else r2) * math.cos(math.pi * i / n):.1f},{cy + (r1 if i % 2 == 0 else r2) * math.sin(math.pi * i / n):.1f}"
                        for i in range(2 * n))
-        return (f'<g class=sticker transform="rotate({r.randint(-25, 25)} {cx} {cy})"><polygon points="{pts}" fill="{c["accent"]}" stroke="{c["ink"]}" stroke-width="1.5"/>'
+        return (f'<g transform="rotate({r.randint(-25, 25)} {cx} {cy})"><g class=sticker><polygon points="{pts}" fill="{c["accent"]}" stroke="{c["ink"]}" stroke-width="1.5"/>'
                 + self._t(cx, cy - 6, "TOP", 9, head=False, w=800, anchor="middle", extra='letter-spacing="1.5"')
-                + self._t(cx, cy + 9, text, 12, w=None, anchor="middle", maxw=52) + "</g>")
+                + self._t(cx, cy + 9, text, 12, w=None, anchor="middle", maxw=52) + "</g></g>")
 
     def card_svg(self, d):
         c, r, W, H = self.card, self.r, 400, 660
@@ -371,12 +373,12 @@ class Gen:
         if L == "band":
             top = (self._patfill(0, 0, W, 340, period) + f'<rect width="80" height="340" fill="{c["accent"]}"/>'
                    + self._year(40, 170, 66, rotate=-90, fit=310) + self._art(d, 80, 24, 292, 292, c["art_r"]))
-            spots = [(340, 300), (330, 52)]
+            spots = [(340, 290), (330, 52)]
         elif L == "banner":
             top = (f'<rect width="{W}" height="96" fill="{c["accent"]}"/>' + self._year(W / 2, 50, 80, fit=360)
                    + self._patfill(0, 96, W, 268, period)
                    + f'<g transform="rotate({c["tilt"]} 200 230)">{self._art(d, 86, 116, 228, 228, c["art_r"])}</g>')
-            spots, info_y = [(335, 330), (65, 330)], 392
+            spots, info_y = [(338, 304), (62, 304)], 392
         elif L == "poster":
             top = (self._art(d, 0, 0, W, 330)
                    + f'<linearGradient id=cfade x1=0 y1=0 x2=0 y2=1><stop offset=".55" stop-color="{c["bg"]}" stop-opacity="0"/><stop offset="1" stop-color="{c["bg"]}"/></linearGradient>'
@@ -387,14 +389,15 @@ class Gen:
             rec = "#111111" if lum(c["ink"]) < .5 else "#0d0d0d"
             grooves = "".join(f'<circle cx="200" cy="175" r="{rr}" fill="none" stroke="#fff" stroke-opacity=".09" stroke-width=".7"/>'
                               for rr in range(76, 148, r.randint(5, 9)))
-            ring_txt = (f"{self.year} · {c['footer'].format(y=self.year)} · " * 6)
+            unit = f"{self.year} · {c['footer'].format(y=self.year)} · "
+            ring_txt = unit * max(1, int(804 / (len(unit) * 8)))  # estimate; JS re-measures with the real font
             top = (self._patfill(0, 0, W, 350, period)
                    + f'<g class=vinyl><circle cx="200" cy="175" r="150" fill="{rec}"/>{grooves}'
                    + f'<path id=cring d="M200,175 m-128,0 a128,128 0 1,1 256,0 a128,128 0 1,1 -256,0" fill="none"/>'
                    + f'<text font-size="11" font-family="{e(self.body_ff)}" font-weight="700" fill="#f1f0eb" fill-opacity=".85" letter-spacing="2">'
-                   + f'<textPath href="#cring">{e(ring_txt)}</textPath></text>'
+                   + f'<textPath href="#cring" textLength="804" lengthAdjust="spacing" data-unit="{e(unit)}">{e(ring_txt)}</textPath></text>'
                    + self._art(d, 132, 107, 136, 136, circle=True) + f'<circle cx="200" cy="175" r="5" fill="{c["bg"]}"/></g>')
-            spots = [(345, 315), (55, 315)]
+            spots = [(352, 292), (48, 292)]
         sticker = self._sticker(*r.choice(spots), d["value"]) if c["sticker"] else ""
         # info block
         y, col, cw = info_y, [22, 208], 170
@@ -410,8 +413,9 @@ class Gen:
             info += f'<line x1="22" x2="{W - 22}" y1="{y + 132}" y2="{y + 132}" stroke="{c["ink"]}" stroke-opacity=".3"{dash}/>'
         info += self._t(col[0], y + 158, "Minutes Listened", 11, head=False, extra='opacity=".65"')
         info += self._t(col[1], y + 158, d["label"], 11, head=False, extra='opacity=".65"')
-        info += self._t(col[0], y + 192, f"{d['minutes']:,}", 30, extra=f'data-n="{d["minutes"]}"')
-        info += self._t(col[1], y + 192, d["value"], 30, maxw=cw)
+        big = not (self.fonts and self.fonts[0] in TEXTURED)
+        info += self._t(col[0], y + 192, f"{d['minutes']:,}", 30, head=big, w=None if big else 700, extra=f'data-n="{d["minutes"]}"')
+        info += self._t(col[1], y + 192, d["value"], 30, head=big, w=None if big else 700, maxw=cw)
         foot = (f'<circle cx="38" cy="{H - 38}" r="16" fill="{c["ink"]}"/>'
                 + self._t(38, H - 38, c["glyph"], 16, head=False, anchor="middle", fill=c["bg"], extra='dominant-baseline="central"')
                 + self._t(W - 22, H - 33, c["footer"].format(y=self.year), 13, head=False, w=800, anchor="end", extra='letter-spacing="1"'))
@@ -677,7 +681,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 @keyframes bob{25%{transform:translateY(-6px) rotate(-5deg)}75%{transform:translateY(3px) rotate(5deg)}}
 button{font:inherit;color:var(--inv);background:var(--fg);border:0;border-radius:99px;padding:.7em 1.6em;font-weight:700;cursor:pointer;transition:transform .2s}
 button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
-#mute{position:fixed;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));z-index:9;padding:.5em .9em;background:#fffd;color:#000}
+#mute{position:fixed;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:9;width:34px;height:34px;padding:0;font-size:14px;line-height:34px;background:color-mix(in srgb,var(--inv) 30%,transparent);border:1px solid color-mix(in srgb,var(--fg) 35%,transparent)}
 #dots{position:fixed;right:calc(14px + env(safe-area-inset-right));top:50%;transform:translateY(-50%);display:grid;gap:8px;z-index:9}
 #dots i{width:6px;height:6px;border-radius:9px;background:color-mix(in srgb,var(--fg) 40%,transparent);transition:all .4s}#dots i.on{background:var(--fg);height:22px}
 /* summary card (SVG) */
@@ -742,6 +746,8 @@ share.onclick=async()=>{const url=location.href.split('#')[0];
   setTimeout(()=>share.textContent='↗ Share',2000)};
 // SVG text can't wrap or ellipsize: once fonts are in, shrink data-fs text to fit, then trim data-w text with an ellipsis.
 document.fonts.ready.then(()=>{
+  document.querySelectorAll('textPath[data-unit]').forEach(tp=>{const u=tp.dataset.unit;tp.textContent=u;
+    const w=tp.parentNode.getComputedTextLength();if(w)tp.textContent=u.repeat(Math.max(1,Math.floor(804/w)))});
   // headlines: shrink until the longest word fits (wide fonts would otherwise overflow or split words)
   document.querySelectorAll('section h1').forEach(h=>{h.classList.add('fit');let f=parseFloat(getComputedStyle(h).fontSize);
     const w=h.closest('section>div').clientWidth;

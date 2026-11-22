@@ -11,4 +11,12 @@ mkdir -p /data/site
   done
 ) &
 # ponytail: stdlib static server, fine for a personal recap; put a reverse proxy in front for TLS
-exec python -m http.server -d /data/site "${PORT:-8080}"
+# no-cache: the page is regenerated in place, so browsers must revalidate instead of showing yesterday's recap
+exec python -c '
+import functools, http.server, os
+class H(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+http.server.ThreadingHTTPServer(("", int(os.environ.get("PORT", 8080))), functools.partial(H, directory="/data/site")).serve_forever()
+' 
