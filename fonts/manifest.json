@@ -1,0 +1,1222 @@
+{
+ "Fraunces": {
+  "category": "Serif",
+  "axes": {
+   "SOFT": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "WONK": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "opsz": [
+    9.0,
+    144.0,
+    14.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "fraunces-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "fraunces-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Recursive": {
+  "category": "Sans Serif",
+  "axes": {
+   "CASL": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "CRSV": [
+    0.0,
+    1.0,
+    0.5
+   ],
+   "MONO": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "slnt": [
+    -15.0,
+    0.0,
+    0.0
+   ],
+   "wght": [
+    300.0,
+    1000.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "recursive-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "recursive-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display",
+   "body"
+  ]
+ },
+ "Roboto Flex": {
+  "category": "Sans Serif",
+  "axes": {
+   "GRAD": [
+    -200.0,
+    150.0,
+    0.0
+   ],
+   "XOPQ": [
+    27.0,
+    175.0,
+    96.0
+   ],
+   "XTRA": [
+    323.0,
+    603.0,
+    468.0
+   ],
+   "YOPQ": [
+    25.0,
+    135.0,
+    79.0
+   ],
+   "YTAS": [
+    649.0,
+    854.0,
+    750.0
+   ],
+   "YTDE": [
+    -305.0,
+    -98.0,
+    -203.0
+   ],
+   "YTFI": [
+    560.0,
+    788.0,
+    738.0
+   ],
+   "YTLC": [
+    416.0,
+    570.0,
+    514.0
+   ],
+   "YTUC": [
+    528.0,
+    760.0,
+    712.0
+   ],
+   "opsz": [
+    8.0,
+    144.0,
+    14.0
+   ],
+   "slnt": [
+    -10.0,
+    0.0,
+    0.0
+   ],
+   "wdth": [
+    25.0,
+    151.0,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    1000.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "robotoflex-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "robotoflex-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Anybody": {
+  "category": "Display",
+  "axes": {
+   "wdth": [
+    50.0,
+    150.0,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "anybody-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "anybody-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Bricolage Grotesque": {
+  "category": "Sans Serif",
+  "axes": {
+   "opsz": [
+    12.0,
+    96.0,
+    14.0
+   ],
+   "wdth": [
+    75.0,
+    100.0,
+    100.0
+   ],
+   "wght": [
+    200.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "bricolagegrotesque-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "bricolagegrotesque-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display",
+   "body"
+  ]
+ },
+ "Big Shoulders": {
+  "category": "Display",
+  "axes": {
+   "opsz": [
+    10.0,
+    72.0,
+    14.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "bigshoulders-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "bigshoulders-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Unbounded": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    200.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "unbounded-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "unbounded-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Syne": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    400.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "syne-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "syne-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Playfair Display": {
+  "category": "Serif",
+  "axes": {
+   "wght": [
+    400.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "playfairdisplay-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "playfairdisplay-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Shantell Sans": {
+  "category": "Display",
+  "axes": {
+   "BNCE": [
+    -100.0,
+    100.0,
+    0.0
+   ],
+   "INFM": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "SPAC": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "wght": [
+    300.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "shantellsans-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "shantellsans-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Climate Crisis": {
+  "category": "Display",
+  "axes": {
+   "YEAR": [
+    1979.0,
+    2050.0,
+    1979.0
+   ]
+  },
+  "files": [
+   {
+    "file": "climatecrisis-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "climatecrisis-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Bodoni Moda": {
+  "category": "Serif",
+  "axes": {
+   "opsz": [
+    6.0,
+    96.0,
+    11.0
+   ],
+   "wght": [
+    400.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "bodonimoda-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "bodonimoda-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Archivo": {
+  "category": "Sans Serif",
+  "axes": {
+   "wdth": [
+    62.0,
+    125.0,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "archivo-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "archivo-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display",
+   "body"
+  ]
+ },
+ "Martian Mono": {
+  "category": "Monospace",
+  "axes": {
+   "wdth": [
+    75.0,
+    112.5,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "martianmono-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "martianmono-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Sixtyfour": {
+  "category": "Monospace",
+  "axes": {
+   "BLED": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "SCAN": [
+    -53.0,
+    100.0,
+    0.0
+   ]
+  },
+  "files": [
+   {
+    "file": "sixtyfour-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "sixtyfour-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Kablammo": {
+  "category": "Display",
+  "axes": {
+   "MORF": [
+    0.0,
+    60.0,
+    0.0
+   ]
+  },
+  "files": [
+   {
+    "file": "kablammo-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "kablammo-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Tilt Warp": {
+  "category": "Display",
+  "axes": {
+   "XROT": [
+    -45.0,
+    45.0,
+    0.0
+   ],
+   "YROT": [
+    -45.0,
+    45.0,
+    0.0
+   ]
+  },
+  "files": [
+   {
+    "file": "tiltwarp-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "tiltwarp-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Danfo": {
+  "category": "Serif",
+  "axes": {
+   "ELSH": [
+    0.0,
+    100.0,
+    0.0
+   ]
+  },
+  "files": [
+   {
+    "file": "danfo-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "danfo-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Grandstander": {
+  "category": "Display",
+  "axes": {
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "grandstander-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "grandstander-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Bitcount Grid Double": {
+  "category": "Display",
+  "axes": {
+   "CRSV": [
+    0.0,
+    1.0,
+    0.5
+   ],
+   "ELSH": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "ELXP": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "slnt": [
+    -8.0,
+    0.0,
+    0.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "bitcountgriddouble-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "bitcountgriddouble-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Handjet": {
+  "category": "Display",
+  "axes": {
+   "ELGR": [
+    1.0,
+    2.0,
+    1.0
+   ],
+   "ELSH": [
+    0.0,
+    16.0,
+    2.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "handjet-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "handjet-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Doto": {
+  "category": "Sans Serif",
+  "axes": {
+   "ROND": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "doto-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "doto-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Science Gothic": {
+  "category": "Sans Serif",
+  "axes": {
+   "CTRS": [
+    0.0,
+    85.0,
+    0.0
+   ],
+   "slnt": [
+    -10.0,
+    0.0,
+    0.0
+   ],
+   "wdth": [
+    50.0,
+    200.0,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "sciencegothic-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "sciencegothic-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Funnel Display": {
+  "category": "Display",
+  "axes": {
+   "wght": [
+    300.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "funneldisplay-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "funneldisplay-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Sour Gummy": {
+  "category": "Sans Serif",
+  "axes": {
+   "wdth": [
+    100.0,
+    125.0,
+    100.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "sourgummy-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "sourgummy-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Caveat": {
+  "category": "Handwriting",
+  "axes": {
+   "wght": [
+    400.0,
+    700.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "caveat-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "caveat-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Instrument Serif": {
+  "category": "Serif",
+  "axes": {},
+  "files": [
+   {
+    "file": "instrumentserif-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "instrumentserif-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Bungee": {
+  "category": "Display",
+  "axes": {},
+  "files": [
+   {
+    "file": "bungee-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "bungee-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Monoton": {
+  "category": "Display",
+  "axes": {},
+  "files": [
+   {
+    "file": "monoton-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "monoton-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Silkscreen": {
+  "category": "Display",
+  "axes": {},
+  "files": [
+   {
+    "file": "silkscreen-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "silkscreen-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Kode Mono": {
+  "category": "Monospace",
+  "axes": {
+   "ROND": [
+    0.0,
+    100.0,
+    0.0
+   ],
+   "wdth": [
+    75.0,
+    125.0,
+    100.0
+   ],
+   "wght": [
+    400.0,
+    700.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "kodemono-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "kodemono-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display"
+  ]
+ },
+ "Space Grotesk": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    300.0,
+    700.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "spacegrotesk-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "spacegrotesk-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "display",
+   "body"
+  ]
+ },
+ "Inter": {
+  "category": "Sans Serif",
+  "axes": {
+   "opsz": [
+    14.0,
+    32.0,
+    14.0
+   ],
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "inter-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "inter-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "DM Sans": {
+  "category": "Sans Serif",
+  "axes": {
+   "opsz": [
+    9.0,
+    40.0,
+    14.0
+   ],
+   "wght": [
+    100.0,
+    1000.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "dmsans-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "dmsans-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Literata": {
+  "category": "Serif",
+  "axes": {
+   "opsz": [
+    7.0,
+    72.0,
+    14.0
+   ],
+   "wght": [
+    200.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "literata-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "literata-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Manrope": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    200.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "manrope-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "manrope-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Outfit": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    100.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "outfit-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "outfit-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Figtree": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    300.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "figtree-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "figtree-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Newsreader": {
+  "category": "Serif",
+  "axes": {
+   "opsz": [
+    6.0,
+    72.0,
+    16.0
+   ],
+   "wght": [
+    200.0,
+    800.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "newsreader-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "newsreader-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ },
+ "Rubik": {
+  "category": "Sans Serif",
+  "axes": {
+   "wght": [
+    300.0,
+    900.0,
+    400.0
+   ]
+  },
+  "files": [
+   {
+    "file": "rubik-latin-ext.woff2",
+    "subset": "latin-ext",
+    "range": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF"
+   },
+   {
+    "file": "rubik-latin.woff2",
+    "subset": "latin",
+    "range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"
+   }
+  ],
+  "roles": [
+   "body"
+  ]
+ }
+}

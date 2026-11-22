@@ -1,5 +1,6 @@
 from datetime import date, datetime
-from wrapped import compute, longest_streak, merge, render
+from design import Gen, contrast, render
+from wrapped import compute, longest_streak, merge
 
 ts = int(datetime(2026, 3, 1, 20).timestamp())
 lb = [{"ts": ts, "artist": "A", "title": "Song", "album": "X", "secs": 200},
@@ -19,4 +20,12 @@ assert s["new"] == [("B", 1)] and s["n_new"] == 1  # A was heard before the year
 assert s["songs"]["new"]["id"] == "s1" and s["songs"]["artist"] is None  # A isn't in the library
 page = render(s, 2026, {"new": {"title": "Other", "artist": "B", "audio": "media/s1.mp3", "cover": "media/s1.jpg"}})
 assert 'data-n="5"' in page and 'data-audio="media/s1.mp3"' in page and "artists discovered" in page and "Top Artists" in page
+# designs: reproducible by seed, different across seeds, always readable
+assert render(s, 2026, seed=42) == render(s, 2026, seed=42)
+assert len({render(s, 2026, seed=i) for i in range(30)}) == 30
+for i in range(300):
+    g = Gen(i)
+    assert all(contrast(c, g.fg) >= 5 for pair in g.palette for c in pair), (i, g.palette)
+    assert contrast(g.card["accent"], g.card["ink"]) >= 3, i
+assert "design seed 7" in render(s, 2026, seed=7)
 print("ok")
