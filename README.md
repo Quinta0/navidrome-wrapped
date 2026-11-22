@@ -29,6 +29,64 @@ Or run it without compose:
 docker run -d -p 8080:8080 --env-file .env -v ./data:/data ghcr.io/quinta0/navidrome-wrapped
 ```
 
+### Unraid
+
+1. **Settings → Docker**: make sure Docker is enabled.
+2. Open the **Docker** tab and click **Add Container** at the bottom. Leave **Template** empty.
+3. Fill in:
+   - **Name**: `navidrome-wrapped`
+   - **Repository**: `ghcr.io/quinta0/navidrome-wrapped:latest`
+   - **Network Type**: `Bridge`
+4. Switch on **Advanced View** (top right). In **Extra Parameters**, enter `--user 99:100`. This makes the files in appdata belong to `nobody:users`, like the rest of your containers.
+5. Click **Add another Path, Port, Variable, Label or Device** and add a path:
+   - **Config Type** `Path`, **Container Path** `/data`, **Host Path** `/mnt/user/appdata/navidrome-wrapped`
+6. Add a port:
+   - **Config Type** `Port`, **Container Port** `8080`, **Host Port** any free port, for example `8085`
+7. Add one **Variable** per setting from the [configuration table](#configuration). The **Key** is the variable name. For example:
+   - `LB_USER` and/or `LASTFM_USER` + `LASTFM_KEY`
+   - `ND_URL`: your Navidrome's LAN address, for example `http://192.168.1.10:4533`. If Navidrome runs on the same Unraid box, use the Unraid IP and Navidrome's host port.
+   - `ND_USER`, `ND_PASS`: set **Password Mask** to `Yes` for the password.
+8. Create the data folder with the right owner first. Otherwise Docker creates it as root and the container can't write to it. Open the Unraid **Terminal** (`>_` icon, top right) and run:
+   ```sh
+   mkdir -p /mnt/user/appdata/navidrome-wrapped && chown 99:100 /mnt/user/appdata/navidrome-wrapped
+   ```
+9. Click **Apply**.
+10. Click the container icon and choose **Logs**. The first build can take several minutes. It's done when you see `listens -> /data/site/index.html`.
+11. Open `http://<unraid-ip>:8085`.
+
+### TrueNAS SCALE (24.10 or later)
+
+1. **Create a dataset.** Go to **Datasets**, select your pool, click **Add Dataset**, name it `navidrome-wrapped` and set **Dataset Preset** to `Apps`. This gives the `apps` user (UID 568) write access.
+2. Go to **Apps → Discover Apps**. Open the **⋮** menu (top right) and choose **Install via YAML**.
+3. Name it `navidrome-wrapped` and paste the YAML below. Fill in your values, and change `tank` to your pool name:
+   ```yaml
+   services:
+     wrapped:
+       image: ghcr.io/quinta0/navidrome-wrapped:latest
+       user: "568:568"
+       ports:
+         - "8085:8080"
+       volumes:
+         - /mnt/tank/navidrome-wrapped:/data
+       environment:
+         LB_USER: ""
+         LB_TOKEN: ""
+         LASTFM_USER: ""
+         LASTFM_KEY: ""
+         ND_URL: "http://192.168.1.10:4533"
+         ND_USER: ""
+         ND_PASS: ""
+       restart: unless-stopped
+   ```
+   Leave unused sources empty. You can also add `YEAR`, `REFRESH_HOURS` or `THEME_SEED` here.
+4. Click **Save**. Wait for the app to show **Running**.
+5. Open the app's **Logs**. The first build can take several minutes. It's done when you see `listens -> /data/site/index.html`.
+6. Open `http://<truenas-ip>:8085`.
+
+On TrueNAS 24.04 or earlier, use **Custom App** instead and enter the same image, port, host path and environment variables in the form.
+
+On either system, `ND_URL` only needs to be reachable from the container. Songs and covers are copied into the page, so your Navidrome doesn't have to be public. To share your recap, put port 8085 behind your reverse proxy (see [Sharing your recap](#sharing-your-recap)).
+
 ## Configuration
 
 | Variable | |

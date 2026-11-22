@@ -491,7 +491,7 @@ class Gen:
             cols = ""
             for rank in (1, 0, 2):
                 lab, c = items[rank]
-                cols += self.anim(f'<span>{lab}</span><i style="height:{35 + 65 * c / mx:.0f}%">{rank + 1}<small>{c}</small></i>',
+                cols += self.anim(f'<span>{lab}</span><i style="height:{(100, 74, 56)[rank]}%">{rank + 1}<small>{c}</small></i>',
                                   st(rank), cls="pod")
             rest = "".join(self.anim(f"{lab}<b>{c}</b>", st(i + 3), tag="li") for i, (lab, c) in enumerate(items[3:]))
             return f'<div class=podium>{cols}</div><ol class=rl start=4 style="counter-reset:n 3">{rest}</ol>'

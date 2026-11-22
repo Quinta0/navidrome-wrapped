@@ -238,6 +238,8 @@ def main():
         sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
     nd = subsonic(env("ND_URL"), env("ND_USER"), env("ND_PASS")) if env("ND_URL") else None
     library = navidrome(nd) if nd else []
+    if not nd:
+        print("ND_URL not set: no slide audio, covers, durations or genres", file=sys.stderr)
     listens = [l for l in merge(*sources) if start <= l["ts"] <= end]
     stats = compute(listens, library, prior)
     os.makedirs(a.out, exist_ok=True)
