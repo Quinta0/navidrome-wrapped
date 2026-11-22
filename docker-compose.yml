@@ -1,0 +1,9 @@
+services:
+  wrapped:
+    image: ghcr.io/quinta0/navidrome-wrapped:latest
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

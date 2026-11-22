@@ -1,0 +1,6 @@
+.env
+data/
+wrapped/
+cache/
+__pycache__/
+wrapped.html
