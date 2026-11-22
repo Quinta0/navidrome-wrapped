@@ -58,3 +58,7 @@ Requires Python 3.10+. Run the tests with `python3 test_wrapped.py`.
 - Delete `data/cache/` after importing older history, so the new artists card is recomputed.
 - Songs are matched to your Navidrome library by artist and title. A slide has no audio if its song isn't in your library.
 - Navidrome converts the audio to MP3 with ffmpeg, so ffmpeg must be available to your Navidrome server (the official image includes it).
+
+## License
+
+[GPL-3.0](LICENSE): free to use, share and modify; modified versions must stay open under the same license.
