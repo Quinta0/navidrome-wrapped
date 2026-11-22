@@ -228,6 +228,17 @@ def main():
     start, end = int(datetime(a.year, 1, 1).timestamp()), int(datetime(a.year + 1, 1, 1).timestamp()) - 1
     env = os.environ.get
     sources, prior = [], set()
+    # Navidrome first: a bad ND_URL should fail in seconds, not after minutes of history paging
+    if env("ND_URL") and not (env("ND_USER") and env("ND_PASS")):
+        sys.exit("ND_URL is set but ND_USER or ND_PASS is missing")
+    nd = subsonic(env("ND_URL"), env("ND_USER"), env("ND_PASS")) if env("ND_URL") else None
+    try:
+        library = navidrome(nd) if nd else []
+    except urllib.error.URLError as ex:
+        sys.exit(f"Can't reach Navidrome at {env('ND_URL')}: {getattr(ex, 'reason', ex)}\n"
+                 "In Docker, localhost is the container itself: use the server's LAN IP and Navidrome's host port.")
+    if not nd:
+        print("ND_URL not set: no slide audio, covers, durations or genres", file=sys.stderr)
     if env("LB_USER"):
         sources.append(list(listenbrainz(env("LB_USER"), env("LB_TOKEN"), start, end)))
         prior |= prior_artists(f"lb-{env('LB_USER')}-{a.year}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start))
@@ -236,10 +247,6 @@ def main():
         prior |= prior_artists(f"lastfm-{env('LASTFM_USER')}-{a.year}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1))
     if not sources:
         sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
-    nd = subsonic(env("ND_URL"), env("ND_USER"), env("ND_PASS")) if env("ND_URL") else None
-    library = navidrome(nd) if nd else []
-    if not nd:
-        print("ND_URL not set: no slide audio, covers, durations or genres", file=sys.stderr)
     listens = [l for l in merge(*sources) if start <= l["ts"] <= end]
     stats = compute(listens, library, prior)
     os.makedirs(a.out, exist_ok=True)

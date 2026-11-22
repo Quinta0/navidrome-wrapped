@@ -66,6 +66,7 @@ except FileNotFoundError:
 FALLBACK = {"Serif": "transitional", "Sans Serif": "grotesk", "Display": "grotesk", "Monospace": "mono", "Handwriting": "hand"}
 PARAMETRIC = {"XOPQ", "YOPQ", "YTAS", "YTDE", "YTFI", "YTLC", "YTUC", "GRAD", "XTRA"}  # Roboto Flex internals: stay near default
 BINARY = {"WONK", "CRSV"}
+LIMIT = {"BLED": (0, 20), "SCAN": (-15, 30), "XROT": (-25, 25), "YROT": (-25, 25)}  # beyond these glyphs stop reading as text
 CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings"]
 GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡"
 
@@ -200,6 +201,7 @@ class Gen:
         """A random point in the font's design space (kept legible)."""
         r, v = self.r, {}
         for t, (lo, hi, df) in axes.items():
+            lo, hi = LIMIT.get(t, (lo, hi))
             if t == "opsz":
                 continue  # browsers pick optical size automatically
             if t in PARAMETRIC:
@@ -243,26 +245,22 @@ class Gen:
             def elsewhere():
                 w = dict(inst)
                 for t in pick:
-                    lo, hi, _ = axes[t]
+                    lo, hi = LIMIT.get(t, axes[t][:2])
                     w[t] = round(r.uniform(max(lo, 62) if t == "wdth" else lo, hi), 2)
                 return self._fvs(w)
             ent = self.uid("v")
             self.css.append(f"@keyframes {ent}{{from{{font-variation-settings:{elsewhere()}}}}}")
             anims = [f"{ent} {self.f(1, 2.2)}s {self.ease()} var(--t,0s) both"]
-            if r.random() < .5:
-                loop = self.uid("v")
-                self.css.append(f"@keyframes {loop}{{to{{font-variation-settings:{elsewhere()}}}}}")
-                anims.append(f"{loop} {self.f(2, 6)}s ease-in-out {self.f(2, 3)}s infinite alternate")
             motion = f".in .disp{{animation:{','.join(anims)}}}"
         dx, dy = r.choice([(1, 1), (-1, 1), (1, -1), (0, 1), (1, 0)])
         o = r.randint(3, 9)
         fx = {"none": "",
               "outline": "color:transparent;-webkit-text-stroke:max(2px,.025em) var(--fg);",
-              "extrude": "text-shadow:" + ",".join(f"{dx * i}px {dy * i}px 0 color-mix(in srgb,var(--fg) 35%,var(--a))"
+              "extrude": "text-shadow:" + ",".join(f"{dx * i * .012:.3f}em {dy * i * .012:.3f}em 0 color-mix(in srgb,var(--fg) 35%,var(--a))"
                                                     for i in range(1, r.randint(4, 12))) + ";",
-              "echo": "text-shadow:" + ",".join(f"{dx * i * o}px {dy * i * o}px 0 color-mix(in srgb,var(--fg) {60 - i * 15}%,transparent)"
+              "echo": "text-shadow:" + ",".join(f"{dx * i * o * .004:.3f}em {dy * i * o * .004:.3f}em 0 color-mix(in srgb,var(--fg) {60 - i * 15}%,transparent)"
                                                  for i in range(1, 4)) + ";",
-              "offset": f"text-shadow:{dx * o}px {dy * o}px 0 color-mix(in srgb,var(--fg) 30%,var(--b));",
+              "offset": f"text-shadow:{dx * o * .012:.3f}em {dy * o * .012:.3f}em 0 color-mix(in srgb,var(--fg) 30%,var(--b));",
               "glow": f"text-shadow:0 0 {r.randint(12, 40)}px color-mix(in srgb,var(--fg) 60%,transparent);"}[effect]
         self.css.append(
             f".disp{{font-family:{self.head_ff};font-weight:{self.hw};font-variation-settings:{self.head_fvs};"
@@ -336,6 +334,14 @@ class Gen:
                 f'<clipPath id=cart><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rad}"/></clipPath>')
         if d["art"]:
             inner = f'<image class=cart href="{e(d["art"])}" x="{x}" y="{y}" width="{w}" height="{h}" preserveAspectRatio="xMidYMid slice"/>'
+        elif circle:  # record label: two lines around the spindle hole, shrinking (not truncating) to fit
+            words = d["name"].split()
+            cut = min(range(1, len(words)), key=lambda i: abs(len(" ".join(words[:i])) - len(" ".join(words[i:]))), default=len(words))
+            lines = [ln for ln in (" ".join(words[:cut]), " ".join(words[cut:])) if ln]
+            dys = [-19, 21] if len(lines) == 2 else [-19]
+            inner = f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c["ink"]}"/>' + "".join(
+                self._t(x + w / 2, y + h / 2 + dy, ln, 22, head=False, w=700, anchor="middle", fill=c["bg"], maxw=w - 36,
+                        extra=f'dominant-baseline="central" data-fs="{w - 36}" data-min="9"') for ln, dy in zip(lines, dys))
         else:
             inner = (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{c["ink"]}"/>'
                      + self._t(x + w / 2, y + h / 2, d["name"], 28, anchor="middle", fill=c["bg"], maxw=w - 24, extra=f'dominant-baseline="central" data-fs="{w - 24}"'))
@@ -410,7 +416,7 @@ class Gen:
                 + self._t(38, H - 38, c["glyph"], 16, head=False, anchor="middle", fill=c["bg"], extra='dominant-baseline="central"')
                 + self._t(W - 22, H - 33, c["footer"].format(y=self.year), 13, head=False, w=800, anchor="end", extra='letter-spacing="1"'))
         label = f"{self.year} summary: top artist {d['artists'][0]}, top song {d['songs'][0]}, {d['minutes']:,} minutes"
-        return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" role="img" aria-label="{e(label)}">'
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" style="border-radius:{c['radius']}px" role="img" aria-label="{e(label)}">'
                 f'<defs>{pat}<clipPath id=cclip><rect width="{W}" height="{H}" rx="{c["radius"]}"/></clipPath></defs>'
                 f'<g clip-path="url(#cclip)"><rect width="{W}" height="{H}" fill="{c["bg"]}"/>{top}{sticker}{info}{foot}</g></svg>')
 
@@ -421,11 +427,11 @@ class Gen:
                 f"--lm:{self.letter_kf};--lstg:{r.randint(20, 70)}ms;--grow:{self.grow};--pop:{self.pop};"
                 f"--rad:{r.choice([0, 4, 10, 20])}px;--dotr:{r.choice(['50%', '2px', '0'])};--cap:{r.choice(['round', 'butt'])};"
                 f"--cols:{r.choice([2, 3])};--tr:{r.randint(-8, 8)}deg;--tks:{r.randint(15, 40)}s;"
-                f"--tkd:{r.choice(['normal', 'reverse'])};--ex:{r.randint(-14, 14)}px;--ey:{r.randint(-14, 14)}px;"
+                f"--tkd:{r.choice(['normal', 'reverse'])};--ex:{r.randint(-6, 6) / 100}em;--ey:{r.randint(-6, 6) / 100}em;"
                 f"--np-r:{r.choice(['50%', '50%', '10px'])};--np-anim:{r.choice(['spin', 'bob'])};"
                 f"--hw:{self.hw}}}"
                 f"section{{background:{bg.format(ang=r.randrange(0, 360, 15))};background-size:{size};"
-                f"animation:{r.choice(['drift', 'drift', 'pulse', 'none'])} {r.randint(8, 25)}s ease-in-out infinite alternate}}"
+                f"animation:{r.choice(['drift', 'drift', 'none'])} {r.randint(8, 25)}s ease-in-out infinite alternate}}"
                 f".echo{{animation:{self.ambient(.3)}}}")
 
     # ---- components ----
@@ -462,6 +468,7 @@ class Gen:
 
     def headline(self, text, t):
         v = self.r.choice(self.head_v)
+        k = f' style="--hk:{min(1, (16 / max(1, len(text))) ** .5):.2f}"'  # long titles shrink instead of eating the slide
         if v == "letters" and len(text) <= 36:
             n, i, words = len(text.replace(" ", "")), 0, []
             order = self.order(n)
@@ -471,15 +478,15 @@ class Gen:
                     ls += f'<span class=l style="--o:{order[i]}">{e(ch)}</span>'
                     i += 1
                 words.append(f"<span class=w>{ls}</span>")
-            return self.anim(f'<h1 class="disp big" aria-label="{e(text)}"><span aria-hidden=true>{" ".join(words)}</span></h1>', t)
+            return self.anim(f'<h1 class="disp big"{k} aria-label="{e(text)}"><span aria-hidden=true>{" ".join(words)}</span></h1>', t)
         if v == "mark":
             origin = self.r.choice(["0 100%", "100% 100%"])
-            return self.anim(f'<h1 class="disp big"><span class=mark style="background-position:{origin}">{e(text)}</span></h1>', t)
+            return self.anim(f'<h1 class="disp big"{k}><span class=mark style="background-position:{origin}">{e(text)}</span></h1>', t)
         if v == "marquee":
             band = f"{e(text)} {self.r.choice('·✦/—●')} " * 6
             return self.anim(f'<div class=tkwrap><div class="tk disp" aria-hidden=true><span>{band}</span><span>{band}</span></div>'
-                             f'<h1 class="disp big">{e(text)}</h1></div>', t)
-        return self.anim(f'<h1 class="disp big">{e(text)}</h1>', t)
+                             f'<h1 class="disp big"{k}>{e(text)}</h1></div>', t)
+        return self.anim(f'<h1 class="disp big"{k}>{e(text)}</h1>', t)
 
     def ranks(self, items, t):
         """items: [(label_html, count)]"""
@@ -499,7 +506,7 @@ class Gen:
             return "<div class=tiles>" + "".join(self.anim(f"<b>{i + 1}</b><span>{lab}</span><small>{c} plays</small>", st(i), cls="tile")
                                                   for i, (lab, c) in enumerate(items[:9])) + "</div>"
         if v == "cloud":
-            return "<p class=cloud>" + "".join(self.anim(lab, st(i), tag="span", style=f"font-size:{14 + 22 * c / mx:.0f}px")
+            return "<p class=cloud>" + "".join(self.anim(lab, st(i), tag="span", style=f"font-size:{14 + 14 * c / mx:.0f}px")
                                                 for i, (lab, c) in enumerate(items)) + "</p>"
         if v == "ticker" and len(items) >= 3:
             row = "".join(f"<span><b>{i + 1}</b> {lab}</span>" for i, (lab, _) in enumerate(items))
@@ -602,11 +609,12 @@ section{position:relative;overflow:hidden;min-height:100vh;scroll-snap-align:sta
   padding:64px 40px 110px 24px;box-sizing:border-box}
 @keyframes drift{to{background-position:100% 100%}}@keyframes pulse{to{background-size:400% 400%;background-position:60% 40%}}
 .bg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(40px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
-.in .bg{opacity:.9;animation:ken 20s ease-in-out infinite alternate}@keyframes ken{to{transform:scale(1.15) rotate(3deg)}}
+.in .bg{opacity:.9}
+section:not(.in),section:not(.in) *{animation-play-state:paused!important}
 .decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 section>div{position:relative;max-width:640px;width:100%;text-align:var(--al)}
 .a{opacity:0}.in .a{animation:var(--m) var(--d) var(--e) var(--t) both}
-h1,.big{font-size:clamp(40px,10vw,88px);margin:.1em 0;overflow-wrap:anywhere}
+h1,.big{font-size:max(24px,calc(clamp(40px,10vw,88px) * var(--hk,1)));margin:.1em 0}.fit *{animation:none!important}
 small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opacity:.7}
 .ln{display:inline-block;width:2em;height:2px;background:currentColor;vertical-align:middle;margin-right:.6em}
 .sub{opacity:.85}em{opacity:.75;font-style:normal;margin-left:.4em}p{margin:.5em 0}
@@ -644,7 +652,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .tiles{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:8px;margin:1em 0;text-align:left}
 .tile{border:1px solid color-mix(in srgb,var(--fg) 30%,transparent);background:color-mix(in srgb,var(--fg) 6%,transparent);border-radius:var(--rad);padding:10px;min-width:0}
 .tile b{display:block;font:var(--hw,800) 26px var(--head)}.tile span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.tile small{font-size:12px}
-.cloud{line-height:1.3;margin:1em 0}.cloud>.a{display:inline-block;margin:0 .45em .15em 0;font-weight:700}
+.cloud{line-height:1.3;margin:1em 0}.cloud em{display:none}.cloud>.a{display:inline-block;margin:0 .45em .15em 0;font-weight:700}
 .tl{overflow:hidden;white-space:nowrap;margin:1em -40px 1em -24px;font-size:22px;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .tl>div{display:inline-block;animation:tick var(--tks) linear infinite var(--tkd)}.tl span{margin-right:1.4em}.tl b{opacity:.6;margin-right:.3em}
 /* chart variants */
@@ -673,7 +681,7 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
 #dots{position:fixed;right:14px;top:50%;transform:translateY(-50%);display:grid;gap:8px;z-index:9}
 #dots i{width:6px;height:6px;border-radius:9px;background:color-mix(in srgb,var(--fg) 40%,transparent);transition:all .4s}#dots i.on{background:var(--fg);height:22px}
 /* summary card (SVG) */
-.card{width:min(400px,100%);margin:auto;filter:drop-shadow(0 24px 40px #0007)}.card svg{display:block;width:100%;height:auto}
+.card{width:min(400px,100%);margin:auto}.card svg{display:block;width:100%;height:auto;box-shadow:0 24px 40px #0007}
 .card .patmove,.card .sticker,.card .vinyl,.card .cart{transform-box:fill-box;transform-origin:center}
 .in .card .sticker{animation:spin 30s linear infinite}.playing .card .vinyl{animation:spin 9s linear infinite}
 .in .card .cart{animation:breathe 7s ease-in-out infinite alternate}@keyframes breathe{to{transform:scale(1.05)}}
@@ -690,13 +698,13 @@ function fade(a,to){const from=a.volume,t0=performance.now();cancelAnimationFram
 function play(sec){
   const src=sec&&sec.dataset.audio,next=src&&(players[src]||=Object.assign(new Audio(src),{loop:true,volume:0}));
   if(next&&!next._seeked)next.addEventListener('loadedmetadata',()=>{next.currentTime=next.duration*.35},{once:true}),next._seeked=1;
-  if(cur&&cur!==next)fade(cur,0);
+  if(cur&&(cur!==next||!sound))fade(cur,0);
   if(next&&sound){next.play().catch(()=>{});fade(next,1)}
   cur=next||null;secs.forEach(s=>s.classList.toggle('playing',sound&&s===sec&&!!next));
 }
 function count(h){const n=+h.dataset.n,t0=performance.now();
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
-  (function f(t){const k=Math.min(1,(t-t0)/1400);h.textContent=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString();if(k<1)requestAnimationFrame(f)})(t0)}
+  (function f(t){const k=Math.min(1,(t-t0)/1400);h.textContent=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString('en-US');if(k<1)requestAnimationFrame(f)})(t0)}
 let active=null;
 const io=new IntersectionObserver(es=>es.forEach(en=>{
   en.target.classList.toggle('in',en.isIntersecting);
@@ -715,7 +723,7 @@ document.getElementById('save').onclick=async ev=>{
   try{
     const svg=document.querySelector('.card svg'),vb=svg.viewBox.baseVal,W=1080,H=Math.round(W*vb.height/vb.width),clone=svg.cloneNode(true);
     clone.setAttribute('width',W);clone.setAttribute('height',H);
-    clone.querySelectorAll('[data-n]').forEach(n=>n.textContent=(+n.dataset.n).toLocaleString());
+    clone.querySelectorAll('[data-n]').forEach(n=>n.textContent=(+n.dataset.n).toLocaleString('en-US'));
     const st=document.createElementNS('http://www.w3.org/2000/svg','style');st.textContent=document.getElementById('fonts').textContent;clone.prepend(st);
     const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(clone));await img.decode();
     const cv=Object.assign(document.createElement('canvas'),{width:W,height:H});cv.getContext('2d').drawImage(img,0,0,W,H);
@@ -726,8 +734,12 @@ document.getElementById('save').onclick=async ev=>{
 };
 // SVG text can't wrap or ellipsize: once fonts are in, shrink data-fs text to fit, then trim data-w text with an ellipsis.
 document.fonts.ready.then(()=>{
+  // headlines: shrink until the longest word fits (wide fonts would otherwise overflow or split words)
+  document.querySelectorAll('section h1').forEach(h=>{h.classList.add('fit');let f=parseFloat(getComputedStyle(h).fontSize);
+    const w=h.closest('section>div').clientWidth;
+    while(f>20&&h.scrollWidth>w+1){f*=.93;h.style.fontSize=f.toFixed(1)+'px'}h.classList.remove('fit')});
   document.querySelectorAll('text[data-fs]').forEach(t=>{const w=+t.dataset.fs;let f=+t.getAttribute('font-size');
-    while(f>14&&t.getComputedTextLength()>w){f*=.94;t.setAttribute('font-size',f.toFixed(1))}});
+    while(f>(+t.dataset.min||14)&&t.getComputedTextLength()>w){f*=.94;t.setAttribute('font-size',f.toFixed(1))}});
   document.querySelectorAll('text[data-w]').forEach(t=>{const w=+t.dataset.w;let s=t.textContent;
     while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}})});
 document.addEventListener('keydown',ev=>{const i=secs.indexOf(active);

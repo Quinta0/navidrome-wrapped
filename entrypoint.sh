@@ -3,8 +3,11 @@
 mkdir -p /data/site
 (
   while true; do
-    python /app/wrapped.py --out /data/site || echo "generation failed, retrying next cycle"
-    sleep $(( ${REFRESH_HOURS:-24} * 3600 ))
+    if python /app/wrapped.py --out /data/site; then
+      sleep $(( ${REFRESH_HOURS:-24} * 3600 ))
+    else
+      echo "generation failed, retrying in 15 minutes"; sleep 900
+    fi
   done
 ) &
 # ponytail: stdlib static server, fine for a personal recap; put a reverse proxy in front for TLS
