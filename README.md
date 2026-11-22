@@ -2,6 +2,10 @@
 
 Your own year-in-music recap, built from your **ListenBrainz** and/or **Last.fm** history and your **Navidrome** server. It's like Spotify Wrapped, but self-hosted.
 
+![Five slides (intro, top artist, new artists, peak month, summary card) from three generated designs](docs/screenshots.webp)
+
+*Each row shows the same demo data rendered with a different design seed.*
+
 - Animated full-screen slides: minutes listened, top artists, songs, albums, genres, new artists you discovered, peak month and hour, listening streaks, and stats about your library
 - Every slide plays a matching song from your own Navidrome library
 - **Generated design, unique every time**: each run builds its own design from a random seed: a colour palette (always WCAG AA readable), typography from 40 bundled variable fonts, each set to a random point in its design space (weight, width, slant and custom axes such as 3D tilt, morph, bounce or optical softness) and with those axes animated, plus outline/extrude/echo/glow effects, generated entrance animations and easing curves, generated SVG decorations, and for every slide which component variant shows the data (odometer, ring, echo or ticker numbers; letter-by-letter, highlighter or marquee headlines; podium, tiles, cloud or ticker rankings; bar, dot, line, radial or heat charts) and how it's laid out
