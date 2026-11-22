@@ -6,7 +6,7 @@ Config via env vars (each source optional, set at least one of LB/Last.fm):
   LASTFM_USER, LASTFM_KEY               Last.fm (key: https://www.last.fm/api/account/create)
   ND_URL, ND_USER, ND_PASS              Navidrome (durations, genres, library stats, slide audio)
 
-Usage: python3 wrapped.py [--year 2026] [--out wrapped]
+Usage: python3 wrapped.py [--year 2026] [--month 11] [--out wrapped]
 Output is a self-contained folder (index.html + media/) - zip it or put it on any static host to share.
 """
 import argparse, base64, hashlib, json, os, secrets, sys, time, urllib.parse, urllib.request
@@ -222,10 +222,14 @@ def compute(listens, library, prior=frozenset()):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, default=int(os.environ.get("YEAR") or datetime.now().year))
+    ap.add_argument("--month", type=int, choices=range(1, 13), help="recap just this month instead of the whole year")
     ap.add_argument("--out", default="wrapped", help="output folder")
     ap.add_argument("--seed", type=int, default=os.environ.get("THEME_SEED") or None, help="reuse a previous design")
     a = ap.parse_args()
-    start, end = int(datetime(a.year, 1, 1).timestamp()), int(datetime(a.year + 1, 1, 1).timestamp()) - 1
+    first = datetime(a.year, a.month or 1, 1)
+    after = datetime(a.year + (a.month or 12) // 12, (a.month or 12) % 12 + 1, 1)
+    start, end = int(first.timestamp()), int(after.timestamp()) - 1
+    period = f"{a.year}-{a.month:02d}" if a.month else a.year
     env = os.environ.get
     sources, prior = [], set()
     # Navidrome first: a bad ND_URL should fail in seconds, not after minutes of history paging
@@ -241,10 +245,10 @@ def main():
         print("ND_URL not set: no slide audio, covers, durations or genres", file=sys.stderr)
     if env("LB_USER"):
         sources.append(list(listenbrainz(env("LB_USER"), env("LB_TOKEN"), start, end)))
-        prior |= prior_artists(f"lb-{env('LB_USER')}-{a.year}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start))
+        prior |= prior_artists(f"lb-{env('LB_USER')}-{period}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start))
     if env("LASTFM_USER") and env("LASTFM_KEY"):
         sources.append(list(lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), start, end)))
-        prior |= prior_artists(f"lastfm-{env('LASTFM_USER')}-{a.year}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1))
+        prior |= prior_artists(f"lastfm-{env('LASTFM_USER')}-{period}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1))
     if not sources:
         sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
     listens = [l for l in merge(*sources) if start <= l["ts"] <= end]
@@ -256,7 +260,7 @@ def main():
         media["card_art"] = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(a.out, cover), "rb").read()).decode()
     seed = int(a.seed) if a.seed is not None else secrets.randbits(64)
     with open(os.path.join(a.out, "index.html"), "w") as f:
-        f.write(render(stats, a.year, media, seed))
+        f.write(render(stats, a.year, media, seed, a.month))
     print(f"{len(listens)} listens -> {a.out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
 
 

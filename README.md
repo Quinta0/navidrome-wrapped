@@ -21,7 +21,7 @@ curl -o .env https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/.e
 docker compose up -d
 ```
 
-Open http://localhost:8080. The first build takes a while (it reads your whole listening history once for the new artists card). After that, the recap regenerates every `REFRESH_HOURS` (default 24).
+Open http://localhost:8080. The first build takes a while (it reads your whole listening history once for the new artists card). After that, a recap of each month is built on the 1st of the next month, and the full-year recap on January 1 (see `REFRESH`). Open the page to pick one.
 
 Or run it without compose:
 
@@ -78,7 +78,7 @@ docker run -d -p 8080:8080 --env-file .env -v ./data:/data ghcr.io/quinta0/navid
          ND_PASS: ""
        restart: unless-stopped
    ```
-   Leave unused sources empty. You can also add `YEAR`, `REFRESH_HOURS` or `THEME_SEED` here.
+   Leave unused sources empty. You can also add `REFRESH` or `THEME_SEED` here.
 4. Click **Save**. Wait for the app to show **Running**.
 5. Open the app's **Logs**. The first build can take several minutes. It's done when you see `listens -> /data/site/index.html`.
 6. Open `http://<truenas-ip>:8085`.
@@ -94,8 +94,7 @@ On either system, `ND_URL` only needs to be reachable from the container. Songs 
 | `LB_USER`, `LB_TOKEN` | ListenBrainz username; the token is optional |
 | `LASTFM_USER`, `LASTFM_KEY` | Last.fm username + [API key](https://www.last.fm/api/account/create) |
 | `ND_URL`, `ND_USER`, `ND_PASS` | Navidrome. A LAN address is fine, since the container fetches everything it needs |
-| `YEAR` | Defaults to the current year |
-| `REFRESH_HOURS` | Default `24` |
+| `REFRESH` | `both` (default), `monthly` or `yearly`. Monthly recaps cover one month and are built on the 1st of the next one; the yearly recap covers Jan 1 to Dec 31 and is built on Jan 1. On startup, the month and year in progress are built too |
 | `THEME_SEED` | Keeps a look you like. Every run prints its seed (it's also in the page's `<meta name=generator>`); set this to reuse that design |
 
 You need at least one of ListenBrainz or Last.fm. If you scrobble to both, duplicate plays are removed. Navidrome is optional, but it provides song lengths, genres, library stats, the audio and the covers.
@@ -113,6 +112,7 @@ Each person runs their own container, pointed at their own Navidrome server. To 
 ```sh
 export LB_USER=... ND_URL=... ND_USER=... ND_PASS=...
 python3 wrapped.py --year 2026 --out wrapped   # then open wrapped/index.html
+python3 wrapped.py --year 2026 --month 11 --out wrapped-nov   # just November
 ```
 
 Requires Python 3.12+. Run the tests with `python3 test_wrapped.py`.

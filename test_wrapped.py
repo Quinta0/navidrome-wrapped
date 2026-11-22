@@ -28,4 +28,6 @@ for i in range(300):
     assert all(contrast(c, g.fg) >= 5 for pair in g.palette for c in pair), (i, g.palette)
     assert contrast(g.card["accent"], g.card["ink"]) >= 3, i
 assert "design seed 7" in render(s, 2026, seed=7)
+nov = render(s, 2026, seed=1, month=11)
+assert "Your November 2026 in music" in nov and "song of the month" in nov and "peak month" not in nov and "data-year=2026-11" in nov
 print("ok")

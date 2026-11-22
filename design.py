@@ -773,10 +773,14 @@ document.addEventListener('visibilitychange',()=>{
 """
 
 
-def render(s, year, media=None, seed=None):
+def render(s, year, media=None, seed=None, month=None):
+    """month=None: the year's recap; month=1..12: just that month."""
     media = media or {}
+    period = f"{datetime(year, month, 1):%B %Y}" if month else str(year)
+    unit, short = ("month", f"{datetime(year, month, 1):%b %Y}") if month else ("year", str(year))
+    slug = f"{year}-{month:02d}" if month else str(year)
     if not s["plays"]:
-        return f"<h1>No listens found for {year}.</h1>"
+        return f"<h1>No listens found for {period}.</h1>"
     g = Gen(seed if seed is not None else random.getrandbits(64))
     wd = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     a1, t1 = s["artists"][0], s["tracks"][0]
@@ -784,7 +788,7 @@ def render(s, year, media=None, seed=None):
     lib_frac = 1 - s["never_played"] / s["lib_songs"] if s["lib_songs"] else None
 
     slides = [  # (key, label, [block(t) ...])
-        ("intro", f"Your {year} in music", [
+        ("intro", f"Your {period} in music", [
             lambda t: g.number(s["minutes"], t),
             lambda t: g.text("minutes listened", t),
             lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub"),
@@ -792,35 +796,36 @@ def render(s, year, media=None, seed=None):
         ("artist", "Your top artist", [
             lambda t: g.headline(a1[0], t), lambda t: g.text(f"{a1[1]} plays", t),
             lambda t: g.ranks([(e(a), n) for a, n in s["artists"][1:10]], t)]),
-        ("track", "Your song of the year", [
+        ("track", f"Your song of the {unit}", [
             lambda t: g.headline(t1[0][0], t), lambda t: g.text(f"{e(t1[0][1])} · {t1[1]} plays", t),
             lambda t: g.ranks([(artist_item(k), n) for k, n in s["tracks"][1:10]], t)]),
     ]
     if s["albums"]:
         top_album = s["albums"][0]
-        slides.append(("album", "Your album of the year", [
+        slides.append(("album", f"Your album of the {unit}", [
             lambda t: g.headline(top_album[0][0], t), lambda t: g.text(f"{e(top_album[0][1])} · {top_album[1]} plays", t),
             lambda t: g.ranks([(artist_item(k), n) for k, n in s["albums"][1:10]], t)]))
     slides.append(("explore", "You explored", [
         lambda t: g.number(s["n_artists"], t), lambda t: g.text("artists", t),
         lambda t: g.text(f"{s['n_tracks']:,} tracks · {s['n_albums']:,} albums", t, "sub")]))
     if s["new"]:
-        slides.append(("new", f"New to you in {year}", [
+        slides.append(("new", f"New to you in {period}", [
             lambda t: g.number(s["n_new"], t, s["n_new"] / max(1, s["n_artists"])), lambda t: g.text("artists discovered", t),
             lambda t: g.text(f"Your biggest find: <b>{e(s['new'][0][0])}</b>", t, "sub"),
             lambda t: g.ranks([(e(a), n) for a, n in s["new"][:8]], t)]))
     if s["genres"]:
         slides.append(("genre", "Your top genre", [
             lambda t: g.headline(s["genres"][0][0], t), lambda t: g.ranks([(e(x), n) for x, n in s["genres"][1:]], t)]))
+    if not month:
+        slides.append(("month", "Your peak month", [
+            lambda t: g.headline(f"{datetime(year, s['peak_month'], 1):%B}", t), lambda t: g.chart(s["months"], "JFMAMJJASOND", t)]))
     slides += [
-        ("month", "Your peak month", [
-            lambda t: g.headline(f"{datetime(year, s['peak_month'], 1):%B}", t), lambda t: g.chart(s["months"], "JFMAMJJASOND", t)]),
         ("hour", "Your listening hour", [
             lambda t: g.headline(f"{s['peak_hour']:02d}:00", t),
             lambda t: g.chart(s["hours"], [f"{h}" if h % 6 == 0 else "" for h in range(24)], t),
             lambda t: g.chart(s["weekdays"], wd, t)]),
         ("streak", "Longest streak", [
-            lambda t: g.number(s["streak"], t, s["streak"] / 365), lambda t: g.text("days in a row with music", t)]
+            lambda t: g.number(s["streak"], t, s["streak"] / (31 if month else 365)), lambda t: g.text("days in a row with music", t)]
          + ([lambda t: g.text(f"Biggest day: {s['top_day'][0]:%d %B} with {s['top_day'][1]} plays", t, "sub")] if s["top_day"] else [])),
     ]
     if s["lib_songs"]:
@@ -839,15 +844,15 @@ def render(s, year, media=None, seed=None):
     # summary card
     art = media.get("card_art") or (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
     last_label, last_value = ("Top Genre", s["genres"][0][0]) if s["genres"] else ("New Artists", f"{s['n_new']:,}")
-    d = {"year": year, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
+    d = {"year": short, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
          "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art}
     content = (f'<div class=a style="--m:{g.card_kf};--d:1.2s;--t:0s;--e:{g.eases[0]}"><div class=card>{g.card_svg(d)}</div></div>'
-               + g.anim(f"<p class=save><button id=save data-year={year}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p>", .6))
+               + g.anim(f"<p class=save><button id=save data-year={slug}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p>", .6))
     body += section(g, len(slides), "summary", content, media, decor=False)
 
     root = g.root_css()  # after components, so all generated keyframes exist
     return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
-            f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {year}</title>'
+            f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {short}</title>'
             f'<style id=fonts>{g.font_css()}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
             f'{body}<script>{JS}</script></html>')
 
