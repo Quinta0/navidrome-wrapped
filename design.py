@@ -686,6 +686,7 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
 .in .card .sticker{animation:spin 30s linear infinite}.playing .card .vinyl{animation:spin 9s linear infinite}
 .in .card .cart{animation:breathe 7s ease-in-out infinite alternate}@keyframes breathe{to{transform:scale(1.05)}}
 .save{text-align:center;margin-top:24px}
+#seed{position:fixed;right:12px;bottom:8px;z-index:9;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;user-select:all}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.a{opacity:1}html{scroll-behavior:auto}}
 """
 
@@ -733,6 +734,12 @@ document.getElementById('save').onclick=async ev=>{
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:file.name});a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   }finally{btn.disabled=false}
 };
+// Share the page link: share sheet where supported, otherwise copy it. Pointless on file://, so hidden there.
+const share=document.getElementById('share');share.hidden=location.protocol==='file:';
+share.onclick=async()=>{const url=location.href.split('#')[0];
+  if(navigator.share)try{await navigator.share({title:document.title,url});return}catch(err){if(err.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(url);share.textContent='✓ Link copied'}catch{prompt('Copy this link',url)}
+  setTimeout(()=>share.textContent='↗ Share',2000)};
 // SVG text can't wrap or ellipsize: once fonts are in, shrink data-fs text to fit, then trim data-w text with an ellipsis.
 document.fonts.ready.then(()=>{
   // headlines: shrink until the longest word fits (wide fonts would otherwise overflow or split words)
@@ -829,13 +836,13 @@ def render(s, year, media=None, seed=None):
     d = {"year": year, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
          "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art}
     content = (f'<div class=a style="--m:{g.card_kf};--d:1.2s;--t:0s;--e:{g.eases[0]}"><div class=card>{g.card_svg(d)}</div></div>'
-               + g.anim(f"<p class=save><button id=save data-year={year}>⬇ Save image</button></p>", .6))
+               + g.anim(f"<p class=save><button id=save data-year={year}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p>", .6))
     body += section(g, len(slides), "summary", content, media, decor=False)
 
     root = g.root_css()  # after components, so all generated keyframes exist
     return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">'
             f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {year}</title>'
-            f'<style id=fonts>{g.font_css()}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav>'
+            f'<style id=fonts>{g.font_css()}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
             f'{body}<script>{JS}</script></html>')
 
 
