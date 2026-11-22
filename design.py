@@ -605,8 +605,8 @@ class Gen:
 
 CSS = """
 html{-webkit-tap-highlight-color:transparent;scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
-section{position:relative;overflow:hidden;min-height:100vh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
-  padding:64px 40px 110px 24px;box-sizing:border-box}
+section{position:relative;overflow:hidden;min-height:100vh;min-height:100svh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
+  padding:calc(64px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box}
 @keyframes drift{to{background-position:100% 100%}}@keyframes pulse{to{background-size:400% 400%;background-position:60% 40%}}
 .bg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(40px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
 .in .bg{opacity:.9}
@@ -671,14 +671,14 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .radial text{fill:var(--fg);font-size:9px;text-anchor:middle;dominant-baseline:middle;opacity:.8}
 .draw{stroke-dasharray:100;stroke-dashoffset:0}.in .draw{animation:draw 1.4s var(--e) calc(var(--t) + var(--o,0) * 40ms) both}@keyframes draw{from{stroke-dashoffset:100}}
 /* chrome */
-.np{position:absolute;left:24px;right:24px;bottom:24px;margin:0;display:flex;gap:12px;align-items:center;font-size:14px;opacity:0;transform:translateY(20px);transition:all .8s .8s}
+.np{position:absolute;left:calc(24px + env(safe-area-inset-left));right:calc(24px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));margin:0;display:flex;gap:12px;align-items:center;font-size:14px;opacity:0;transform:translateY(20px);transition:all .8s .8s}
 .in .np{opacity:1;transform:none}.np img{width:52px;height:52px;border-radius:var(--np-r);box-shadow:0 4px 20px #0006;animation:var(--np-anim) 8s linear infinite paused}
 .playing .np img{animation-play-state:running}@keyframes spin{to{transform:rotate(1turn)}}
 @keyframes bob{25%{transform:translateY(-6px) rotate(-5deg)}75%{transform:translateY(3px) rotate(5deg)}}
 button{font:inherit;color:var(--inv);background:var(--fg);border:0;border-radius:99px;padding:.7em 1.6em;font-weight:700;cursor:pointer;transition:transform .2s}
 button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
-#mute{position:fixed;top:16px;right:16px;z-index:9;padding:.5em .9em;background:#fffd;color:#000}
-#dots{position:fixed;right:14px;top:50%;transform:translateY(-50%);display:grid;gap:8px;z-index:9}
+#mute{position:fixed;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));z-index:9;padding:.5em .9em;background:#fffd;color:#000}
+#dots{position:fixed;right:calc(14px + env(safe-area-inset-right));top:50%;transform:translateY(-50%);display:grid;gap:8px;z-index:9}
 #dots i{width:6px;height:6px;border-radius:9px;background:color-mix(in srgb,var(--fg) 40%,transparent);transition:all .4s}#dots i.on{background:var(--fg);height:22px}
 /* summary card (SVG) */
 .card{width:min(400px,100%);margin:auto}.card svg{display:block;width:100%;height:auto;box-shadow:0 24px 40px #0007}
@@ -686,7 +686,7 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
 .in .card .sticker{animation:spin 30s linear infinite}.playing .card .vinyl{animation:spin 9s linear infinite}
 .in .card .cart{animation:breathe 7s ease-in-out infinite alternate}@keyframes breathe{to{transform:scale(1.05)}}
 .save{text-align:center;margin-top:24px}
-#seed{position:fixed;right:12px;bottom:8px;z-index:9;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;user-select:all}
+#seed{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));z-index:9;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;user-select:all}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.a{opacity:1}html{scroll-behavior:auto}}
 """
 
@@ -840,7 +840,7 @@ def render(s, year, media=None, seed=None):
     body += section(g, len(slides), "summary", content, media, decor=False)
 
     root = g.root_css()  # after components, so all generated keyframes exist
-    return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">'
+    return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
             f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {year}</title>'
             f'<style id=fonts>{g.font_css()}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
             f'{body}<script>{JS}</script></html>')
