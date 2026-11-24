@@ -99,7 +99,7 @@ section{padding:110px 0}
 .step.on{opacity:1;transform:none;pointer-events:auto}
 .step .num{font:800 clamp(64px,9vw,120px)/1 var(--disp);color:var(--acc);margin-bottom:10px}
 .step h3{font-size:clamp(36px,5vw,64px);margin-bottom:.35em}.step p{font-size:clamp(17px,1.8vw,20px);opacity:.8;max-width:28em;margin:0}
-.bar{position:absolute;left:22px;right:22px;bottom:26px;display:flex;gap:6px}.bar i{flex:1;height:3px;border-radius:3px;background:#ffffff26;overflow:hidden}
+.bar{position:absolute;left:22px;right:22px;top:max(22px,env(safe-area-inset-top));display:flex;gap:6px}.bar i{flex:1;height:3px;border-radius:3px;background:#ffffff26;overflow:hidden}
 .bar i::after{content:"";display:block;height:100%;background:var(--acc);transform:scaleX(var(--f,0));transform-origin:left}
 .phone{position:relative;height:min(80svh,720px);aspect-ratio:390/844;border-radius:42px;padding:10px;background:#1a1a1d;box-shadow:0 0 0 2px #333,0 40px 100px #000c}
 .screen{width:100%;height:100%;border-radius:33px;overflow:hidden;position:relative;background:#000}
@@ -145,7 +145,7 @@ footer{padding:40px 0 70px;opacity:.6;font-size:14px}
 @media (max-width:800px){
   .hero .wrap{grid-template-columns:1fr}.deck{justify-self:start;width:52vw;margin-top:8px;order:-1}
   .stick{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);align-content:center;gap:18px;padding:16px 18px 50px}
-  .stick{grid-template-rows:34svh auto;align-content:start;padding-top:max(22px,env(safe-area-inset-top))}
+  .stick{grid-template-rows:34svh auto;align-content:start;padding-top:max(36px,calc(env(safe-area-inset-top) + 14px))}
   .phone{height:calc(66svh - 96px);justify-self:center;border-radius:30px;padding:7px}.screen{border-radius:24px}.shuffle{display:none}
   .steps{min-height:0;height:100%}.step{justify-content:flex-end}.step .num{font-size:34px;margin-bottom:2px}.step h3{font-size:clamp(24px,7vw,30px);margin-bottom:.25em}.step p{font-size:15px;line-height:1.5}
   .tl{grid-template-columns:repeat(6,1fr)}.tl i.y{grid-column:1/-1;aspect-ratio:auto;padding:12px}
