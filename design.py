@@ -472,7 +472,7 @@ class Gen:
                 f"--tkd:{r.choice(['normal', 'reverse'])};--ex:{r.randint(-6, 6) / 100}em;--ey:{r.randint(-6, 6) / 100}em;"
                 f"--np-r:{r.choice(['50%', '50%', '10px'])};--np-anim:{r.choice(['spin', 'bob'])};"
                 f"--hw:{self.hw}}}"
-                f"section{{background:{bg.format(ang=r.randrange(0, 360, 15))};background-size:{size};"
+                f"section::before{{background:{bg.format(ang=r.randrange(0, 360, 15))};background-size:{size};"
                 f"animation:{r.choice(['drift', 'drift', 'none'])} {r.randint(8, 25)}s ease-in-out infinite alternate}}"
                 f".echo{{animation:{self.ambient(.3)}}}")
 
@@ -685,10 +685,11 @@ CSS = """
 html{-webkit-tap-highlight-color:transparent;scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
 section{position:relative;overflow:hidden;min-height:100vh;min-height:100svh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
   padding:calc(64px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box}
-@keyframes drift{to{background-position:100% 100%}}
-.bg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(40px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
+section{background:var(--a)}section::before{content:"";position:absolute;inset:-15%}
+@keyframes drift{from{transform:translate(-5%,-5%)}to{transform:translate(5%,5%)}}
+.bg{position:absolute;left:-10%;top:-10%;width:30%;height:30%;transform:scale(4);transform-origin:0 0;object-fit:cover;filter:blur(10px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
 .in .bg{opacity:.9}
-section:not(.in),section:not(.in) *{animation-play-state:paused!important}
+section:not(.in),section:not(.in) *,section:not(.in)::before{animation-play-state:paused!important}
 .decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 section>div{position:relative;max-width:640px;width:100%;text-align:var(--al)}
 .a{opacity:0}.in .a{animation:var(--m) var(--d) var(--e) var(--t) both}
@@ -700,7 +701,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .odo{display:inline-block;height:1em;line-height:1;overflow:hidden;vertical-align:top;font-variant-numeric:tabular-nums}
 .odo>span{display:block;transform:translateY(calc(var(--d) * -1em))}
 .in .odo>span{animation:odo calc(var(--d) * .12s + .8s) var(--e) calc(var(--t) + var(--i) * 90ms) both}@keyframes odo{from{transform:translateY(0)}}
-.ringwrap{position:relative;width:min(78vw,340px);aspect-ratio:1;display:inline-grid;place-items:center}
+.ringwrap{position:relative;width:min(78vw,340px,45svh);aspect-ratio:1;display:inline-grid;place-items:center}
 .ring{position:absolute;inset:0;transform:rotate(-90deg)}.ring circle{fill:none;stroke-width:6;stroke-linecap:var(--cap)}
 .ring .track{stroke:color-mix(in srgb,var(--fg) 18%,transparent)}.ring .arc{stroke:var(--fg);stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--f))}
 .in .ring .arc{animation:ring 1.8s var(--e) var(--t) both}@keyframes ring{from{stroke-dashoffset:100}}
@@ -745,7 +746,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .lc .draw{fill:none;stroke:var(--fg);stroke-width:3;vector-effect:non-scaling-stroke;stroke-linecap:var(--cap)}
 .in .lc .area{animation:fade 1.4s var(--t) both}@keyframes fade{from{opacity:0}}
 .labels{display:flex;justify-content:space-between}
-.radial{width:min(100%,340px);display:block;margin:1em auto}.radial line{stroke:var(--fg);stroke-linecap:var(--cap)}
+.radial{width:min(100%,340px,32svh);display:block;margin:1em auto}.radial line{stroke:var(--fg);stroke-linecap:var(--cap)}
 .radial text{fill:var(--fg);font-size:9px;text-anchor:middle;dominant-baseline:middle;opacity:.8}
 .draw{stroke-dasharray:100;stroke-dashoffset:0}.in .draw{animation:draw 1.4s var(--e) calc(var(--t) + var(--o,0) * 40ms) both}@keyframes draw{from{stroke-dashoffset:100}}
 /* chrome */
