@@ -1,4 +1,4 @@
-FROM python:3.14-alpine
+FROM python:3.15-alpine
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 RUN adduser -D -u 1000 wrapped && mkdir /data && chown wrapped /data
 COPY wrapped.py design.py serve.py entrypoint.sh /app/
