@@ -48,3 +48,30 @@ idx = open(f"{site}/index.html").read()
 assert idx.index('href="2026/"') < idx.index('href="2026-11/"') < idx.index('href="2026-10/"'), idx
 assert "34,011" in idx and "A&amp;B" in idx and "in progress" in idx and "3 recaps" in idx
 print("index ok")
+# backfill: which finished periods are missing, per REFRESH mode
+import wrapped
+from wrapped import missing
+first, now = datetime(2025, 11, 15).timestamp(), datetime(2026, 2, 10)
+site = tempfile.mkdtemp()
+assert missing(site, first, "both", now) == [(2025, 11), (2025, 12), (2026, 1), (2025, None)]
+assert missing(site, first, "yearly", now) == [(2025, None)]
+os.makedirs(f"{site}/2025-12"); open(f"{site}/2025-12/index.html", "w").write("x")
+assert missing(site, first, "monthly", now) == [(2025, 11), (2026, 1)]  # already built: skipped
+# whole flow on fake history: one recap per past month, artists from earlier months aren't "new"
+hist = [{"ts": int(datetime(2025, 11, 3).timestamp()), "artist": "Old", "title": "a", "album": "x", "secs": 200},
+        {"ts": int(datetime(2025, 12, 3).timestamp()), "artist": "Old", "title": "a", "album": "x", "secs": 200},
+        {"ts": int(datetime(2025, 12, 4).timestamp()), "artist": "Fresh", "title": "b", "album": "y", "secs": 200}]
+wrapped.history = lambda env, start, end: [dict(l) for l in hist if start <= l["ts"] <= end]
+wrapped.CACHE = tempfile.mkdtemp()
+site = tempfile.mkdtemp()
+wrapped.backfill(lambda k: None, site, "monthly", [], None, seed=1)
+built = sorted(x for x in os.listdir(site) if os.path.isdir(f"{site}/{x}"))
+assert built == ["2025-11", "2025-12"], built  # months without listens get no recap
+dec = open(f"{site}/2025-12/index.html").read()
+assert "New to you in December 2025" in dec and "Your biggest find: <b>Fresh</b>" in dec, "Old was heard in November"
+assert os.path.isfile(f"{site}/index.html")
+calls = []
+wrapped.history = lambda *a: calls.append(a) or []
+wrapped.backfill(lambda k: None, site, "monthly", [], None)  # all built or known empty: no history fetch at all
+assert not calls, calls
+print("backfill ok")

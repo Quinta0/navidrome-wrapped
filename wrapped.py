@@ -232,22 +232,103 @@ def build_index(site):
         f.write(index_page(recaps))
 
 
+def period_range(year, month=None):
+    """(first, last) unix second of a year, or of one month of it."""
+    first = datetime(year, month or 1, 1)
+    after = datetime(year + (month or 12) // 12, (month or 12) % 12 + 1, 1)
+    return int(first.timestamp()), int(after.timestamp()) - 1
+
+
+def slug(year, month=None):
+    return f"{year}-{month:02d}" if month else str(year)
+
+
+def history(env, start, end):
+    """Listens in [start, end] from every configured source, cross-scrobbles merged."""
+    sources = []
+    if env("LB_USER"):
+        sources.append(list(listenbrainz(env("LB_USER"), env("LB_TOKEN"), start, end)))
+    if env("LASTFM_USER") and env("LASTFM_KEY"):
+        sources.append(list(lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), max(1, start), end)))
+    if not sources:
+        sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
+    return [l for l in merge(*sources) if start <= l["ts"] <= end]
+
+
+def build(year, month, listens, prior, library, nd, out, seed=None):
+    """Write one recap (index.html, media/, meta.json) to out."""
+    end = period_range(year, month)[1]
+    stats = compute(listens, library, prior)
+    os.makedirs(out, exist_ok=True)
+    media = fetch_media(nd, stats["songs"], out) if nd and listens else {}
+    cover = (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
+    if cover:  # inline so the canvas export isn't blocked as cross-origin on file://
+        media["card_art"] = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(out, cover), "rb").read()).decode()
+    seed = int(seed) if seed is not None else secrets.randbits(64)
+    with open(os.path.join(out, "index.html"), "w") as f:
+        f.write(render(stats, year, media, seed, month))
+    a_col, b_col = (g := Gen(seed)).palette[0]
+    top = lambda k: stats[k][0][0] if stats[k] else None
+    json.dump({"minutes": stats["minutes"], "plays": stats["plays"], "artist": top("artists"), "a": a_col, "b": b_col, "fg": g.fg,
+               "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed},
+              open(os.path.join(out, "meta.json"), "w"))
+    print(f"{len(listens)} listens -> {out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
+
+
+def missing(site, first_ts, mode, now=None, empty=()):
+    """Finished periods since the first listen with no recap in site yet. mode: monthly, yearly or both (REFRESH).
+    empty: slugs known to have no listens (gaps in the history), which never get a recap."""
+    now, d = now or datetime.now(), datetime.fromtimestamp(first_ts)
+    out = []
+    if mode != "yearly":
+        y, m = d.year, d.month
+        while (y, m) < (now.year, now.month):
+            out.append((y, m))
+            y, m = y + m // 12, m % 12 + 1
+    if mode != "monthly":
+        out += [(y, None) for y in range(d.year, now.year)]
+    return [p for p in out if slug(*p) not in empty and not os.path.isfile(os.path.join(site, slug(*p), "index.html"))]
+
+
+def backfill(env, site, mode, library, nd, seed=None):
+    """Recaps for every finished month/year before now, from one pass over the whole history."""
+    # first listen + months/years without listens; the past doesn't change (delete cache/ after big imports)
+    path = os.path.join(CACHE, "backfill.json")
+    seen = json.load(open(path)) if os.path.exists(path) else None
+    if seen and not missing(site, seen["first"], mode, empty=set(seen["empty"])):
+        return print("backfill: every past recap is already built")
+    now = datetime.now()
+    listens = history(env, 0, int(datetime(now.year, now.month, 1).timestamp()) - 1)
+    if not listens:
+        return print("backfill: no listens before this month")
+    todo, empty = [], []
+    for y, m in missing(site, listens[0]["ts"], mode):
+        start, end = period_range(y, m)
+        inside = [l for l in listens if start <= l["ts"] <= end]
+        (todo if inside else empty).append((y, m, start, inside))
+    os.makedirs(CACHE, exist_ok=True)
+    json.dump({"first": listens[0]["ts"], "empty": [slug(y, m) for y, m, *_ in empty]}, open(path, "w"))
+    print(f"backfill: building {len(todo)} past recaps" + (f", skipping {len(empty)} without listens" if empty else ""))
+    for y, m, start, inside in todo:
+        prior = {key(l["artist"])[0] for l in listens if l["ts"] < start}
+        build(y, m, inside, prior, library, nd, os.path.join(site, slug(y, m)), seed)
+        build_index(site)  # each one shows up on the overview as soon as it's done
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, default=int(os.environ.get("YEAR") or datetime.now().year))
     ap.add_argument("--month", type=int, choices=range(1, 13), help="recap just this month instead of the whole year")
     ap.add_argument("--out", default="wrapped", help="output folder")
     ap.add_argument("--index", metavar="SITE", help="only rebuild SITE/index.html, the overview of the recaps in SITE/*/")
+    ap.add_argument("--backfill", metavar="SITE", help="build every finished month/year (per REFRESH) missing from SITE/")
     ap.add_argument("--seed", type=int, default=os.environ.get("THEME_SEED") or None, help="reuse a previous design")
     a = ap.parse_args()
     if a.index:
         return build_index(a.index)
-    first = datetime(a.year, a.month or 1, 1)
-    after = datetime(a.year + (a.month or 12) // 12, (a.month or 12) % 12 + 1, 1)
-    start, end = int(first.timestamp()), int(after.timestamp()) - 1
-    period = f"{a.year}-{a.month:02d}" if a.month else a.year
     env = os.environ.get
-    sources, prior = [], set()
+    if not (env("LB_USER") or (env("LASTFM_USER") and env("LASTFM_KEY"))):
+        sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
     # Navidrome first: a bad ND_URL should fail in seconds, not after minutes of history paging
     if env("ND_URL") and not (env("ND_USER") and env("ND_PASS")):
         sys.exit("ND_URL is set but ND_USER or ND_PASS is missing")
@@ -259,30 +340,16 @@ def main():
                  "In Docker, localhost is the container itself: use the server's LAN IP and Navidrome's host port.")
     if not nd:
         print("ND_URL not set: no slide audio, covers, durations or genres", file=sys.stderr)
+    if a.backfill:
+        return backfill(env, a.backfill, env("REFRESH") or "both", library, nd, a.seed)
+    start, end = period_range(a.year, a.month)
+    period = slug(a.year, a.month)
+    prior = set()
     if env("LB_USER"):
-        sources.append(list(listenbrainz(env("LB_USER"), env("LB_TOKEN"), start, end)))
         prior |= prior_artists(f"lb-{env('LB_USER')}-{period}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start))
     if env("LASTFM_USER") and env("LASTFM_KEY"):
-        sources.append(list(lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), start, end)))
         prior |= prior_artists(f"lastfm-{env('LASTFM_USER')}-{period}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1))
-    if not sources:
-        sys.exit("Set LB_USER and/or LASTFM_USER + LASTFM_KEY")
-    listens = [l for l in merge(*sources) if start <= l["ts"] <= end]
-    stats = compute(listens, library, prior)
-    os.makedirs(a.out, exist_ok=True)
-    media = fetch_media(nd, stats["songs"], a.out) if nd and listens else {}
-    cover = (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
-    if cover:  # inline so the canvas export isn't blocked as cross-origin on file://
-        media["card_art"] = "data:image/jpeg;base64," + base64.b64encode(open(os.path.join(a.out, cover), "rb").read()).decode()
-    seed = int(a.seed) if a.seed is not None else secrets.randbits(64)
-    with open(os.path.join(a.out, "index.html"), "w") as f:
-        f.write(render(stats, a.year, media, seed, a.month))
-    a_col, b_col = (g := Gen(seed)).palette[0]
-    top = lambda k: stats[k][0][0] if stats[k] else None
-    json.dump({"minutes": stats["minutes"], "plays": stats["plays"], "artist": top("artists"), "a": a_col, "b": b_col, "fg": g.fg,
-               "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed},
-              open(os.path.join(a.out, "meta.json"), "w"))
-    print(f"{len(listens)} listens -> {a.out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
+    build(a.year, a.month, history(env, start, end), prior, library, nd, a.out, a.seed)
 
 
 if __name__ == "__main__":

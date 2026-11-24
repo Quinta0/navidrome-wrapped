@@ -2,7 +2,7 @@
 # REFRESH=monthly: a recap of each month, built on the 1st of the next month.
 # REFRESH=yearly:  a recap of Jan 1 - Dec 31, built on Jan 1.
 # REFRESH=both (default): both, so January 1 brings December's recap and the year's.
-# On startup it builds the periods in progress so the page isn't empty.
+# On startup it builds the periods in progress so the page isn't empty, then any past ones still missing.
 # Each recap goes to /data/site/2026 or /data/site/2026-11; /data/site/index.html lists them.
 mode=${REFRESH:-both}
 mkdir -p /data/site
@@ -20,6 +20,9 @@ build() {  # build YEAR [MONTH], retrying every 15 minutes until it works
   y=$(date +%Y); m=$(date +%m); m=${m#0}
   [ "$mode" != yearly ] && build "$y" "$m"
   [ "$mode" != monthly ] && build "$y"
+  # past months/years that have no recap yet; one pass over the history, skipped quickly once all exist
+  REFRESH=$mode python /app/wrapped.py --backfill /data/site || echo "backfill failed, it retries on the next restart"
+  python /app/wrapped.py --index /data/site
   while true; do
     sleep "$(python -c '
 import datetime as dt

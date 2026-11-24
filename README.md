@@ -21,7 +21,7 @@ curl -o .env https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/.e
 docker compose up -d
 ```
 
-Open http://localhost:8080. The first build takes a while (it reads your whole listening history once for the new artists card). After that, a recap of each month is built on the 1st of the next month, and the full-year recap on January 1 (see `REFRESH`). Open the page to pick one.
+Open http://localhost:8080. The first build takes a while (it reads your whole listening history once for the new artists card). Then it builds a recap for every past month and year in your history, back to your first listen (months without listens are skipped). After that, a recap of each month is built on the 1st of the next month, and the full-year recap on January 1 (see `REFRESH`). Open the page to pick one.
 
 Or run it without compose:
 
@@ -51,7 +51,7 @@ docker run -d -p 8080:8080 --env-file .env -v ./data:/data ghcr.io/quinta0/navid
    mkdir -p /mnt/user/appdata/navidrome-wrapped && chown 99:100 /mnt/user/appdata/navidrome-wrapped
    ```
 9. Click **Apply**.
-10. Click the container icon and choose **Logs**. The first build can take several minutes. It's done when you see `listens -> /data/site/index.html`.
+10. Click the container icon and choose **Logs**. The first build can take several minutes. The current month and year are ready when you see `listens -> /data/site/...` for both. Past months and years follow after that.
 11. Open `http://<unraid-ip>:8085`.
 
 ### TrueNAS SCALE (24.10 or later)
@@ -80,7 +80,7 @@ docker run -d -p 8080:8080 --env-file .env -v ./data:/data ghcr.io/quinta0/navid
    ```
    Leave unused sources empty. You can also add `REFRESH` or `THEME_SEED` here.
 4. Click **Save**. Wait for the app to show **Running**.
-5. Open the app's **Logs**. The first build can take several minutes. It's done when you see `listens -> /data/site/index.html`.
+5. Open the app's **Logs**. The first build can take several minutes. The current month and year are ready when you see `listens -> /data/site/...` for both. Past months and years follow after that.
 6. Open `http://<truenas-ip>:8085`.
 
 On TrueNAS 24.04 or earlier, use **Custom App** instead and enter the same image, port, host path and environment variables in the form.
@@ -94,7 +94,7 @@ On either system, `ND_URL` only needs to be reachable from the container. Songs 
 | `LB_USER`, `LB_TOKEN` | ListenBrainz username; the token is optional |
 | `LASTFM_USER`, `LASTFM_KEY` | Last.fm username + [API key](https://www.last.fm/api/account/create) |
 | `ND_URL`, `ND_USER`, `ND_PASS` | Navidrome. A LAN address is fine, since the container fetches everything it needs |
-| `REFRESH` | `both` (default), `monthly` or `yearly`. Monthly recaps cover one month and are built on the 1st of the next one; the yearly recap covers Jan 1 to Dec 31 and is built on Jan 1. On startup, the month and year in progress are built too |
+| `REFRESH` | `both` (default), `monthly` or `yearly`. Monthly recaps cover one month and are built on the 1st of the next one; the yearly recap covers Jan 1 to Dec 31 and is built on Jan 1. On startup, the month and year in progress are built too, then every past month/year that has listens but no recap yet |
 | `THEME_SEED` | Keeps a look you like. Every run prints its seed (it's also in the page's `<meta name=generator>`); set this to reuse that design |
 
 You need at least one of ListenBrainz or Last.fm. If you scrobble to both, duplicate plays are removed. Navidrome is optional, but it provides song lengths, genres, library stats, the audio and the covers.
