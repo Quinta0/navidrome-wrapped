@@ -2,6 +2,8 @@
 
 Your own year-in-music recap, built from your **ListenBrainz** and/or **Last.fm** history and your **Navidrome** server. It's like Spotify Wrapped, but self-hosted.
 
+**[Website and live demos](https://quinta0.github.io/navidrome-wrapped/)**: tap through a few generated recaps before you install.
+
 ![Five slides (intro, top artist, new artists, peak month, summary card) from three generated designs](docs/screenshots.webp)
 
 *Each row shows the same demo data rendered with a different design seed.*

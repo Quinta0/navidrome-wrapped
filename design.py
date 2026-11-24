@@ -73,6 +73,7 @@ BINARY = {"WONK", "CRSV"}
 TEXTURED = {"Doto", "Sixtyfour", "Bitcount Grid Double", "Handjet", "Monoton", "Kablammo", "Danfo"}  # great big, unreadable at card size
 LIMIT = {"BLED": (0, 20), "SCAN": (-15, 30), "XROT": (-25, 25), "YROT": (-25, 25)}  # beyond these glyphs stop reading as text
 CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings", "triangles", "diamonds", "crosses", "bricks", "scales"]
+REPO = "https://github.com/Quinta0/navidrome-wrapped"
 GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡♬✿❖✸☾◆"
 
 
@@ -111,7 +112,7 @@ class Gen:
         self.eases = [self.ease() for _ in range(2)]
         self.vocab = [self.enter() for _ in range(r.randint(3, 5))]  # entrance moves this design "speaks"
         self.letter_kf, self.card_kf = self.enter(.4), self.enter(1.6)
-        self.grow, self.pop = self._from_only("grow"), self._from_only("pop")
+        self.grow, self.pop = self._from_only("grow"), self._from_only("pop")  # unused since charts wipe in; kept so seeds keep their designs
         self.dur, self.stg = round(r.uniform(.5, 1.3), 2), round(r.uniform(.06, .2), 2)
         self.number_v = r.sample(["count", "odo", "ring", "echo", "ticker"], 3)
         self.head_v = r.sample(["plain", "letters", "mark", "marquee"], r.randint(2, 3))
@@ -563,6 +564,11 @@ class Gen:
     def chart(self, values, labels, t):
         v, mx, n = self.r.choice(self.chart_v), max(values) or 1, len(values)
         o = self.order(n)
+        # bars/dots/heat reveal with one clip-path wipe per chart: a separate pop-in per bar or dot (up to ~190)
+        # made WebKit (Safari) stutter. The wipe follows the stagger order, so no extra random draws.
+        wipe = ("inset(0 100% 0 0)" if o[0] == 0 else "inset(0 0 0 100%)" if o[-1] == 0
+                else "inset(0 50% 0 50%)" if min(o) == o[n // 2] else "inset(100% 0 0 0)")
+        ws = f' style="--wipe:{wipe}"'
         if v == "line" and n > 2:
             pts = [(i / (n - 1) * 100, 95 - x / mx * 85) for i, x in enumerate(values)]
             d = f"M{pts[0][0]:.1f},{pts[0][1]:.1f}" + "".join(
@@ -582,14 +588,14 @@ class Gen:
                     lines += f'<text x="{100 + (r0 - 9) * math.cos(a):.1f}" y="{100 + (r0 - 9) * math.sin(a):.1f}">{e(labels[i])}</text>'
             inner = f'<svg class=radial viewBox="0 0 200 200" aria-hidden=true>{lines}</svg>'
         elif v == "dots":
-            inner = "<div class=dots>" + "".join(
+            inner = f"<div class=dots{ws}>" + "".join(
                 f'<div class=dcol><span>{e(l)}</span>' + "".join(f'<i style="--o:{o[i] + j * .5}"></i>' for j in range(round(x / mx * 8)))
                 + "</div>" for i, (x, l) in enumerate(zip(values, labels))) + "</div>"
         elif v == "heat":
-            inner = "<div class=heat>" + "".join(f'<div><i style="opacity:{.12 + .88 * x / mx:.2f};--o:{o[i]}"></i><span>{e(l)}</span></div>'
+            inner = f"<div class=heat{ws}>" + "".join(f'<div><i style="opacity:{.12 + .88 * x / mx:.2f};--o:{o[i]}"></i><span>{e(l)}</span></div>'
                                                  for i, (x, l) in enumerate(zip(values, labels))) + "</div>"
         else:
-            inner = "<div class=bars>" + "".join(f'<div class=bar title="{e(l)}: {x}"><i style="height:{x / mx * 100:.0f}%;--o:{o[i]}"></i><span>{e(l)}</span></div>'
+            inner = f"<div class=bars{ws}>" + "".join(f'<div class=bar title="{e(l)}: {x}"><i style="height:{x / mx * 100:.0f}%;--o:{o[i]}"></i><span>{e(l)}</span></div>'
                                                  for i, (x, l) in enumerate(zip(values, labels))) + "</div>"
         return self.anim(f'<div role=img aria-label="{e(", ".join(f"{l}: {x}" for x, l in zip(values, labels) if l))}">{inner}</div>', t)
 
@@ -749,7 +755,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .bars{display:flex;gap:3px;height:140px;align-items:flex-end;margin:1em 0}.bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 .bar i{display:block;width:100%;background:color-mix(in srgb,var(--fg) 85%,transparent);border-radius:var(--rad) var(--rad) 0 0;min-height:2px;transform-origin:bottom}
 .bar span,.dcol span,.heat span,.labels span{font-size:12px;height:1.2em;opacity:.8}
-.in .bar i,.in .dcol i,.in .heat i{animation:var(--grow) .9s var(--e) calc(var(--t) + var(--o) * 35ms) both}.in .dcol i,.in .heat i{animation-name:var(--pop)}
+.in .bars,.in .dots,.in .heat{animation:wipe 1.1s var(--e) var(--t) both}@keyframes wipe{from{clip-path:var(--wipe)}to{clip-path:inset(0 0 0 0)}}
 .dots{display:flex;gap:3px;height:150px;margin:1em 0}.dcol{flex:1;display:flex;flex-direction:column-reverse;align-items:center;gap:3px}
 .dcol i{width:min(12px,90%);aspect-ratio:1;border-radius:var(--dotr);background:var(--fg)}
 .heat{display:flex;gap:3px;margin:1em 0}.heat>div{flex:1;text-align:center}.heat i{display:block;height:52px;background:var(--fg);border-radius:var(--rad)}
@@ -780,7 +786,7 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
 .card .patmove,.card .sticker,.card .vinyl,.card .cart{transform-box:fill-box;transform-origin:center}
 .in .card .sticker{animation:spin 30s linear infinite}.playing .card .vinyl{animation:spin 9s linear infinite}
 .in .card .cart{animation:breathe 7s ease-in-out infinite alternate}@keyframes breathe{to{transform:scale(1.05)}}
-.save{text-align:center;margin-top:24px}
+.save{text-align:center;margin-top:24px}.own{text-align:center;margin:14px 0 0;font-size:14px}.own a{color:inherit;opacity:.8;text-underline-offset:3px}.own a:hover{opacity:1}
 #seed{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));z-index:9;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;user-select:all}
 /* loading screen: a record spins while fonts, covers and the first song get ready; tapping it starts the soundtrack */
 html.loading{overflow:hidden}
@@ -984,7 +990,7 @@ def render(s, year, media=None, seed=None, month=None):
     d = {"year": short, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
          "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art}
     content = (f'<div class=a style="--m:{g.card_kf};--d:1.2s;--t:0s;--e:{g.eases[0]}"><div class=card>{g.card_svg(d)}</div></div>'
-               + g.anim(f"<p class=save><button id=save data-year={slug}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p>", .6))
+               + g.anim(f"<p class=save><button id=save data-year={slug}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p><p class=own><a href=\"{REPO}\" target=_blank rel=noopener>Make your own Wrapped ↗</a></p>", .6))
     body += section(g, len(slides), "summary", content, media, decor=False)
 
     root = g.root_css()  # after components, so all generated keyframes exist
@@ -1027,6 +1033,7 @@ header p{opacity:.6;margin:.8em 0 2.4em}
 .rc.big{grid-column:1/-1;min-height:260px;padding:24px}.rc.big h2{font-size:clamp(64px,17vw,150px)}
 .rc.big img{width:min(30%,200px);height:auto;aspect-ratio:1;top:24px;right:24px;border-radius:16px;rotate:4deg}
 .empty{opacity:.7;font-size:18px}
+footer{margin-top:8px;opacity:.6;font-size:14px}footer a{color:inherit;text-underline-offset:3px}footer a:hover{opacity:1}
 @keyframes up{from{opacity:0;transform:translateY(24px)}}
 @media (prefers-reduced-motion:reduce){.rc{animation:none;transition:none}}
 """
@@ -1061,4 +1068,5 @@ def index_page(recaps):
     return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
             f'<meta name=theme-color content="#0d0d0f"><title>Wrapped</title>' + ("" if recaps else '<meta http-equiv=refresh content=60>')
             + f"<style>{fonts}:root{{--disp:{repr(disp) if disp else ''}, system-ui, sans-serif}}{INDEX_CSS}</style>"
-            f"<main><header><h1>Wrapped</h1><p>Your music, recapped · {count}</p></header>{body}</main></html>")
+            f"<main><header><h1>Wrapped</h1><p>Your music, recapped · {count}</p></header>{body}"
+            f'<footer><a href="{REPO}">Make your own Wrapped ↗</a></footer></main></html>')
