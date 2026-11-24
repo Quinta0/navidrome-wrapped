@@ -148,7 +148,9 @@ class Gen:
         start = f"opacity:0;transform:{' '.join(tf) or 'none'}"
         end = "opacity:1;transform:none"
         if "blur" in props:
-            start, end = start + f";filter:blur({r.randint(6, 20)}px)", end + ";filter:none"
+            px = r.randint(6, 20)
+            if amp >= 1:  # per-letter blur is one blur pass per letter per frame: too heavy for phones
+                start, end = start + f";filter:blur({px}px)", end + ";filter:none"
         if "clip" in props:
             c0, c1 = r.choice([("inset(0 100% 0 0)", "inset(-30%)"), ("inset(0 0 0 100%)", "inset(-30%)"),
                                ("inset(100% 0 0 0)", "inset(-30%)"), ("inset(0 0 100% 0)", "inset(-30%)"),
@@ -798,15 +800,20 @@ let lock=null;async function wake(){try{lock=sound&&!document.hidden?await navig
 const theme=document.querySelector('meta[name=theme-color]');
 function count(h){const n=+h.dataset.n,t0=performance.now();
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
-  (function f(t){const k=Math.min(1,(t-t0)/1400);h.textContent=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString('en-US');if(k<1)requestAnimationFrame(f)})(t0)}
-let active=null;
+  (function f(t){const k=Math.min(1,(t-t0)/1400),s=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString('en-US');
+    if(h.textContent!==s)h.textContent=s;if(k<1)requestAnimationFrame(f)})(t0)}
+let active=null,settled=true,st;
+// a slide animates in only once scrolling has stopped, so the swipe itself never competes with text animation
+function enter(sec){if(sec.classList.contains('in'))return;sec.classList.add('in');
+  const idx=secs.indexOf(sec);[...dots.children].forEach((d,i)=>d.className=i===idx?'on':i<idx?'past':'');
+  theme.content=getComputedStyle(sec).getPropertyValue('--a').trim();  // browser bar matches the slide
+  sec.querySelectorAll('[data-n]').forEach(count);play(sec)}
+const settle=()=>{clearTimeout(st);settled=true;active&&enter(active)};
+addEventListener('scrollend',settle);  // the timeout covers browsers without scrollend
+addEventListener('scroll',()=>{settled=false;clearTimeout(st);st=setTimeout(settle,'onscrollend'in window?800:150)},{passive:true});
 const io=new IntersectionObserver(es=>es.forEach(en=>{
-  en.target.classList.toggle('in',en.isIntersecting);
-  if(!en.isIntersecting)return;
-  active=en.target;
-  const idx=secs.indexOf(active);[...dots.children].forEach((d,i)=>d.className=i===idx?'on':i<idx?'past':'');
-  theme.content=getComputedStyle(active).getPropertyValue('--a').trim();  // browser bar matches the slide
-  active.querySelectorAll('[data-n]').forEach(count);play(active);
+  if(!en.isIntersecting)return en.target.classList.remove('in');
+  active=en.target;if(settled)enter(active);
 }),{threshold:.55});
 secs.forEach(s=>io.observe(s));
 function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active);wake()}
