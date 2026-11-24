@@ -38,13 +38,4 @@ print(int((dt.datetime(n.year + n.month // 12, n.month % 12 + 1, 1, 0, 5) - n).t
     [ "$mode" != monthly ] && [ "$m" = 1 ] && build "$py"
   done
 ) &
-# ponytail: stdlib static server, fine for a personal recap; put a reverse proxy in front for TLS
-# no-cache: the page is regenerated in place, so browsers must revalidate instead of showing an old copy
-exec python -c '
-import functools, http.server, os
-class H(http.server.SimpleHTTPRequestHandler):
-    def end_headers(self):
-        self.send_header("Cache-Control", "no-cache")
-        super().end_headers()
-http.server.ThreadingHTTPServer(("", int(os.environ.get("PORT", 8080))), functools.partial(H, directory="/data/site")).serve_forever()
-' 
+exec python /app/serve.py

@@ -70,10 +70,19 @@ except FileNotFoundError:
 FALLBACK = {"Serif": "transitional", "Sans Serif": "grotesk", "Display": "grotesk", "Monospace": "mono", "Handwriting": "hand"}
 PARAMETRIC = {"XOPQ", "YOPQ", "YTAS", "YTDE", "YTFI", "YTLC", "YTUC", "GRAD", "XTRA"}  # Roboto Flex internals: stay near default
 BINARY = {"WONK", "CRSV"}
-TEXTURED = {"Doto", "Sixtyfour", "Bitcount Grid Double", "Handjet", "Monoton", "Kablammo"}  # great big, unreadable at card size
+TEXTURED = {"Doto", "Sixtyfour", "Bitcount Grid Double", "Handjet", "Monoton", "Kablammo", "Danfo"}  # great big, unreadable at card size
 LIMIT = {"BLED": (0, 20), "SCAN": (-15, 30), "XROT": (-25, 25), "YROT": (-25, 25)}  # beyond these glyphs stop reading as text
 CARD_PATTERNS = ["checker", "stripes", "dots", "grid", "waves", "zigzag", "plus", "rings", "triangles", "diamonds", "crosses", "bricks", "scales"]
 GLYPHS = "♪♫✦✺❋◐✱✳❂☀✶◎⬡♬✿❖✸☾◆"
+
+
+def in_range(c, rng):
+    """c in a CSS unicode-range like 'U+0100-02BA, U+1E00-1EFF'"""
+    for part in rng.replace("U+", "").split(","):
+        lo, _, hi = part.strip().partition("-")
+        if int(lo, 16) <= c <= int(hi or lo, 16):
+            return True
+    return False
 
 
 class Gen:
@@ -259,6 +268,8 @@ class Gen:
             self.css.append(f"@keyframes {ent}{{from{{font-variation-settings:{elsewhere()}}}}}")
             anims = [f"{ent} {self.f(1, 2.2)}s {self.ease()} var(--t,0s) both"]
             motion = f".in .disp{{animation:{','.join(anims)}}}"
+        # small text (labels, tile/podium numbers) never in a font that only reads big
+        self.small_ff = self.body_ff if self.fonts and self.fonts[0] in TEXTURED else self.head_ff
         dx, dy = r.choice([(1, 1), (-1, 1), (1, -1), (0, 1), (1, 0)])
         o = r.randint(3, 9)
         fx = {"none": "",
@@ -275,17 +286,20 @@ class Gen:
             f".disp{{font-family:{self.head_ff};font-weight:{self.hw};font-variation-settings:{self.head_fvs};"
             f"letter-spacing:{self.f(-.05, .08)}em;text-transform:{r.choice(['none', 'none', 'uppercase', 'lowercase'])};"
             f"line-height:{self.f(.9, 1.1)};transform:skewX({r.choice([0, 0, 0, -8, -4, 6])}deg);{fx}}}{motion}"
-            f".lbl{{font-family:{r.choice([self.head_ff, self.body_ff])};text-transform:{r.choice(['uppercase', 'uppercase', 'none'])};"
+            f".lbl{{font-family:{r.choice([self.small_ff, self.body_ff])};text-transform:{r.choice(['uppercase', 'uppercase', 'none'])};"
             f"letter-spacing:{self.f(0, .3)}em;font-weight:{r.choice([400, 600, 800])};font-size:{r.randint(12, 16)}px}}")
 
-    def font_css(self):
-        """@font-face for this design's two fonts, inlined so the page (and the PNG export) work offline."""
-        out = ""
+    def font_css(self, text=""):
+        """@font-face for this design's two fonts, inlined so the page (and the PNG export) work offline.
+        Subsets no character of text falls in are left out (most pages never need latin-ext)."""
+        used, out = {ord(c) for c in text}, ""
         for name in self.fonts:
             ax = MANIFEST[name]["axes"]
             w = f"{ax['wght'][0]:g} {ax['wght'][1]:g}" if "wght" in ax else "400"
             st = f"font-stretch:{ax['wdth'][0]:g}% {ax['wdth'][1]:g}%;" if "wdth" in ax else ""
             for fl in MANIFEST[name]["files"]:
+                if fl["subset"] != "latin" and not any(in_range(c, fl["range"]) for c in used):
+                    continue
                 data = base64.b64encode(open(os.path.join(FONT_DIR, fl["file"]), "rb").read()).decode()
                 out += (f"@font-face{{font-family:'{name}';src:url(data:font/woff2;base64,{data}) format('woff2');"
                         f"font-weight:{w};{st}font-display:block;unicode-range:{fl['range']}}}")
@@ -451,7 +465,7 @@ class Gen:
     def root_css(self):
         r = self.r
         bg, size = r.choice(BACKGROUNDS)
-        return (f":root{{--fg:{self.fg};--inv:{self.inv};--body:{self.body_ff};--head:{self.head_ff};"
+        return (f":root{{--fg:{self.fg};--inv:{self.inv};--body:{self.body_ff};--head:{self.head_ff};--small:{self.small_ff};"
                 f"--lm:{self.letter_kf};--lstg:{r.randint(20, 70)}ms;--grow:{self.grow};--pop:{self.pop};"
                 f"--rad:{r.choice([0, 4, 10, 20])}px;--dotr:{r.choice(['50%', '2px', '0'])};--cap:{r.choice(['round', 'butt'])};"
                 f"--cols:{r.choice([2, 3])};--tr:{r.randint(-8, 8)}deg;--tks:{r.randint(15, 40)}s;"
@@ -528,7 +542,7 @@ class Gen:
                 lab, c = items[rank]
                 cols += self.anim(f'<span>{lab}</span><i style="height:{(100, 74, 56)[rank]}%">{rank + 1}<small>{c}</small></i>',
                                   st(rank), cls="pod")
-            rest = "".join(self.anim(f"{lab}<b>{c}</b>", st(i + 3), tag="li") for i, (lab, c) in enumerate(items[3:]))
+            rest = "".join(self.anim(f"<span>{lab}</span><b>{c}</b>", st(i + 3), tag="li") for i, (lab, c) in enumerate(items[3:]))
             return f'<div class=podium>{cols}</div><ol class=rl start=4 style="counter-reset:n 3">{rest}</ol>'
         if v == "tiles":
             return "<div class=tiles>" + "".join(self.anim(f"<b>{i + 1}</b><span>{lab}</span><small>{c} plays</small>", st(i), cls="tile")
@@ -539,7 +553,7 @@ class Gen:
         if v == "ticker" and len(items) >= 3:
             row = "".join(f"<span><b>{i + 1}</b> {lab}</span>" for i, (lab, _) in enumerate(items))
             return self.anim(f'<div class=tl><div>{row}</div><div aria-hidden=true>{row}</div></div>', st(0))
-        return "<ol class=rl>" + "".join(self.anim(f"{lab}<b>{c}</b>", st(i), tag="li") for i, (lab, c) in enumerate(items)) + "</ol>"
+        return "<ol class=rl>" + "".join(self.anim(f"<span>{lab}</span><b>{c}</b>", st(i), tag="li") for i, (lab, c) in enumerate(items)) + "</ol>"
 
     def chart(self, values, labels, t):
         v, mx, n = self.r.choice(self.chart_v), max(values) or 1, len(values)
@@ -553,7 +567,7 @@ class Gen:
                      f'<path class=draw d="{d}" pathLength=100 /></svg><div class=labels>{"".join(f"<span>{e(l)}</span>" for l in labels)}</div>')
         elif v == "radial":
             r0, lines = 38, ""
-            sw = max(2, 2 * math.pi * r0 / n * .55)
+            sw = min(7, max(2, 2 * math.pi * r0 / n * .55))
             for i, x in enumerate(values):
                 a = 2 * math.pi * i / n - math.pi / 2
                 r1 = r0 + 3 + x / mx * 55
@@ -660,8 +674,8 @@ class Gen:
             ang, gap = r.randint(0, 180), r.uniform(3, 8)
             body = (f'<g transform="rotate({ang} 50 50)" stroke="var(--fg)" stroke-width="{self.f(.15, .4)}" opacity="{self.f(.1, .2)}">'
                     + "".join(f'<path d="M-50,{y:.1f}H150"/>' for y in [i * gap - 50 for i in range(int(200 / gap))]) + "</g>")
-        return (f'<svg class=decor viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden=true>'
-                f'<g style="animation:{self.ambient()};transform-origin:50% 50%;transform-box:fill-box">{body}</g></svg>')
+        return (f'<svg class=decor viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden=true '
+                f'style="animation:{self.ambient()}">{body}</svg>')
 
     def layout(self):
         return f"--al:{self.r.choice(self.aligns)};--va:{self.r.choice(self.valigns)}"
@@ -671,11 +685,11 @@ CSS = """
 html{-webkit-tap-highlight-color:transparent;scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
 section{position:relative;overflow:hidden;min-height:100vh;min-height:100svh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
   padding:calc(64px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box}
-@keyframes drift{to{background-position:100% 100%}}@keyframes pulse{to{background-size:400% 400%;background-position:60% 40%}}
+@keyframes drift{to{background-position:100% 100%}}
 .bg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(40px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
 .in .bg{opacity:.9}
 section:not(.in),section:not(.in) *{animation-play-state:paused!important}
-.decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 section>div{position:relative;max-width:640px;width:100%;text-align:var(--al)}
 .a{opacity:0}.in .a{animation:var(--m) var(--d) var(--e) var(--t) both}
 h1,.big{font-size:max(24px,calc(clamp(40px,10vw,88px) * var(--hk,1)));margin:.1em 0}.fit *{animation:none!important}
@@ -707,15 +721,15 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 /* list variants */
 .rl{padding:0;list-style:none;counter-reset:n;text-align:left}
 .rl li{counter-increment:n;display:flex;gap:.6em;padding:.35em 0;border-bottom:1px solid color-mix(in srgb,var(--fg) 20%,transparent)}
-.rl li::before{content:counter(n);opacity:.6;width:1.5em}.rl li b{margin-left:auto;opacity:.8}
+.rl li::before{content:counter(n);opacity:.6;width:1.5em;flex:none}.rl li>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rl li b{opacity:.8}
 .podium{display:flex;align-items:flex-end;gap:8px;height:220px;margin:1em 0}
 .pod{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;text-align:center}
 .pod>span{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-bottom:4px}.pod>span em{display:none}
 .pod i{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:8px;background:var(--fg);color:var(--a);
-  border-radius:var(--rad) var(--rad) 0 0;font:normal 900 30px/1 var(--head)}.pod i small{font:600 12px var(--body);opacity:.8;margin-top:4px}
+  border-radius:var(--rad) var(--rad) 0 0;font:normal 900 30px/1 var(--small)}.pod i small{font:600 12px var(--body);opacity:.8;margin-top:4px}
 .tiles{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:8px;margin:1em 0;text-align:left}
 .tile{border:1px solid color-mix(in srgb,var(--fg) 30%,transparent);background:color-mix(in srgb,var(--fg) 6%,transparent);border-radius:var(--rad);padding:10px;min-width:0}
-.tile b{display:block;font:var(--hw,800) 26px var(--head)}.tile span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.tile small{font-size:12px}
+.tile b{display:block;font:var(--hw,800) 26px var(--small)}.tile span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.tile small{font-size:12px}
 .cloud{line-height:1.3;margin:1em 0}.cloud em{display:none}.cloud>.a{display:inline-block;margin:0 .45em .15em 0;font-weight:700}
 .tl{overflow:hidden;white-space:nowrap;margin:1em -40px 1em -24px;font-size:22px;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .tl>div{display:inline-block;animation:tick var(--tks) linear infinite var(--tkd)}.tl span{margin-right:1.4em}.tl b{opacity:.6;margin-right:.3em}
@@ -741,9 +755,14 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 @keyframes bob{25%{transform:translateY(-6px) rotate(-5deg)}75%{transform:translateY(3px) rotate(5deg)}}
 button{font:inherit;color:var(--inv);background:var(--fg);border:0;border-radius:99px;padding:.7em 1.6em;font-weight:700;cursor:pointer;transition:transform .2s}
 button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
-#mute{position:fixed;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:9;width:34px;height:34px;padding:0;font-size:14px;line-height:34px;background:color-mix(in srgb,var(--inv) 30%,transparent);border:1px solid color-mix(in srgb,var(--fg) 35%,transparent)}
+#mute{position:fixed;top:calc(14px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));z-index:9;width:44px;height:44px;padding:0;font-size:16px;line-height:44px;background:color-mix(in srgb,var(--inv) 30%,transparent);border:1px solid color-mix(in srgb,var(--fg) 35%,transparent)}
 #dots{position:fixed;right:calc(14px + env(safe-area-inset-right));top:50%;transform:translateY(-50%);display:grid;gap:8px;z-index:9}
 #dots i{width:6px;height:6px;border-radius:9px;background:color-mix(in srgb,var(--fg) 40%,transparent);transition:all .4s}#dots i.on{background:var(--fg);height:22px}
+@media (max-width:640px){
+  section{padding-right:calc(24px + env(safe-area-inset-right))}
+  #dots{top:calc(8px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));transform:none;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
+  #dots i,#dots i.on{width:auto;height:3px}#dots i.past{background:color-mix(in srgb,var(--fg) 75%,transparent)}
+  #mute{top:calc(20px + env(safe-area-inset-top))}}
 /* summary card (SVG) */
 .card{width:min(400px,100%);margin:auto}.card svg{display:block;width:100%;height:auto;box-shadow:0 24px 40px #0007}
 .card .patmove,.card .sticker,.card .vinyl,.card .cart{transform-box:fill-box;transform-origin:center}
@@ -767,7 +786,15 @@ function play(sec){
   Object.values(players).forEach(a=>{if(a!==next||!sound)a.paused?cancelAnimationFrame(a._f):fade(a,0)});
   if(next&&sound){next.play().catch(()=>{});fade(next,1)}
   cur=next||null;secs.forEach(s=>s.classList.toggle('playing',sound&&s===sec&&!!next));
+  // lock screen / headphone controls show the slide's song
+  if(next&&'mediaSession'in navigator){const d=sec.dataset;navigator.mediaSession.metadata=new MediaMetadata({title:d.title,artist:d.artist,
+    album:document.title,artwork:d.cover?[{src:new URL(d.cover,location).href}]:[]});navigator.mediaSession.playbackState=sound?'playing':'paused'}
 }
+if('mediaSession'in navigator)[['play',()=>setSound(true)],['pause',()=>setSound(false)],['nexttrack',()=>go(1)],['previoustrack',()=>go(-1)]]
+  .forEach(([k,f])=>{try{navigator.mediaSession.setActionHandler(k,f)}catch{}});
+// keep the screen on while the soundtrack plays (the lock is dropped by the browser when the tab hides)
+let lock=null;async function wake(){try{lock=sound&&!document.hidden?await navigator.wakeLock?.request('screen'):(lock?.release(),null)}catch{}}
+const theme=document.querySelector('meta[name=theme-color]');
 function count(h){const n=+h.dataset.n,t0=performance.now();
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   (function f(t){const k=Math.min(1,(t-t0)/1400);h.textContent=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString('en-US');if(k<1)requestAnimationFrame(f)})(t0)}
@@ -776,11 +803,12 @@ const io=new IntersectionObserver(es=>es.forEach(en=>{
   en.target.classList.toggle('in',en.isIntersecting);
   if(!en.isIntersecting)return;
   active=en.target;
-  [...dots.children].forEach((d,i)=>d.className=secs[i]===active?'on':'');
+  const idx=secs.indexOf(active);[...dots.children].forEach((d,i)=>d.className=i===idx?'on':i<idx?'past':'');
+  theme.content=getComputedStyle(active).getPropertyValue('--a').trim();  // browser bar matches the slide
   active.querySelectorAll('[data-n]').forEach(count);play(active);
 }),{threshold:.55});
 secs.forEach(s=>io.observe(s));
-function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active)}
+function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active);wake()}
 mute.onclick=()=>setSound(!sound);
 document.getElementById('start').onclick=()=>{setSound(true);secs[1]&&secs[1].scrollIntoView()};
 // Save image: the card is an SVG, so serialize it with the embedded fonts and rasterize it: exactly what's on screen.
@@ -829,7 +857,7 @@ document.addEventListener('click',ev=>{
   go(ev.clientX<innerWidth*.25?-1:1)});
 // background tab or screen off: rAF fades stall, so pause hard and resume on return
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)Object.values(players).forEach(a=>{cancelAnimationFrame(a._f);a.pause()});else play(active)});
+  if(document.hidden)Object.values(players).forEach(a=>{cancelAnimationFrame(a._f);a.pause()});else play(active),wake()});
 """
 
 
@@ -911,17 +939,18 @@ def render(s, year, media=None, seed=None, month=None):
     body += section(g, len(slides), "summary", content, media, decor=False)
 
     root = g.root_css()  # after components, so all generated keyframes exist
-    return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
+    return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="{g.palette[0][0]}">'
             f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {short}</title>'
-            f'<style id=fonts>{g.font_css()}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
+            f'<style id=fonts>{g.font_css(body)}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
             f'{body}<script>{JS}</script></html>')
 
 
 def section(g, i, key, content, media, decor=True):
     m = media.get(key, {})
     a, b = g.palette[i % len(g.palette)]
-    attr = f' data-audio="{e(m["audio"])}"' if m.get("audio") else ""
-    img = f'src="{e(m["cover"])}" alt=""' if m.get("cover") else ""
+    attr = (f' data-audio="{e(m["audio"])}" data-title="{e(m["title"])}" data-artist="{e(m["artist"])}"'
+            + (f' data-cover="{e(m["cover"])}"' if m.get("cover") else "")) if m.get("audio") else ""
+    img = f'src="{e(m["cover"])}" alt="" loading=lazy decoding=async' if m.get("cover") else ""
     bg = f"<img class=bg {img}>" if img else ""
     deco = "".join(g.decor() for _ in range(g.r.choice([1, 1, 2]))) if decor else ""
     np = (f"<figure class=np>{f'<img {img}>' if img else ''}"
