@@ -776,6 +776,23 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
 .in .card .cart{animation:breathe 7s ease-in-out infinite alternate}@keyframes breathe{to{transform:scale(1.05)}}
 .save{text-align:center;margin-top:24px}
 #seed{position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));z-index:9;font-size:11px;opacity:.55;font-variant-numeric:tabular-nums;user-select:all}
+/* loading screen: a record spins while fonts, covers and the first song get ready; tapping it starts the soundtrack */
+html.loading{overflow:hidden}
+#load{position:fixed;inset:0;z-index:20;display:grid;place-content:center;justify-items:center;gap:20px;padding:24px;text-align:center;cursor:pointer;
+  background:radial-gradient(circle at 50% 38%,var(--b),var(--a) 70%);color:var(--fg);transition:opacity .7s,visibility .7s}
+#load.done{opacity:0;visibility:hidden}
+.deck{position:relative;width:min(64vw,300px);aspect-ratio:1;transition:transform .7s cubic-bezier(.5,0,.2,1)}#load.done .deck{transform:scale(1.5)}
+.disc{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;box-shadow:0 24px 60px #0009;animation:spin 2.4s linear infinite;
+  background:radial-gradient(circle,var(--a) 0 2.4%,transparent 2.6%),radial-gradient(circle,var(--b) 0 31%,#0000 31.4%),
+  radial-gradient(circle,#0000 0 95%,#2a2a2a 96%),repeating-radial-gradient(circle,#141414 0 2px,#1d1d1d 2px 4px)}
+.disc b{font:var(--hw) clamp(18px,6vw,30px)/1 var(--small);translate:0 -.85em;color:var(--fg)}
+.deck::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;  /* the shine stays put while the record turns */
+  background:conic-gradient(from 20deg,#0000,#fff2 8%,#0000 16%,#0000 50%,#fff2 58%,#0000 66%);mask:radial-gradient(circle,#0000 31%,#000 31.5% 96%,#0000 96.5%)}
+#load.ready .disc{animation-duration:1.6s}
+#load p{margin:0;font-weight:600;letter-spacing:.02em}#load small{opacity:.75}
+.prog{width:min(56vw,220px);height:4px;border-radius:9px;background:color-mix(in srgb,var(--fg) 25%,transparent);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--fg);transition:width .4s}
+#start{visibility:hidden;opacity:0;transition:opacity .4s}#load.ready #start{visibility:visible;opacity:1}#load.ready .prog{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}.a{opacity:1}html{scroll-behavior:auto}}
 """
 
@@ -784,10 +801,13 @@ const secs=[...document.querySelectorAll('section')],dots=document.getElementByI
 secs.forEach(()=>dots.append(document.createElement('i')));
 const players={};let sound=false,cur=null;
 function fade(a,to){const from=a.volume,t0=performance.now();cancelAnimationFrame(a._f);
-  (function f(t){const k=Math.min(1,(t-t0)/700);a.volume=from+(to-from)*k;if(k<1)a._f=requestAnimationFrame(f);else if(!to)a.pause()})(t0)}
+  (function f(t){const k=Math.max(0,Math.min(1,(t-t0)/700));a.volume=from+(to-from)*k;if(k<1)a._f=requestAnimationFrame(f);else if(!to)a.pause()})(t0)}
+function player(src){  // one looping player per song, parked at 35% (usually past the intro) once its length is known
+  if(!players[src]){const a=players[src]=Object.assign(new Audio(),{loop:true,volume:0,preload:'metadata'});
+    a._ready=new Promise(r=>{a.addEventListener('loadedmetadata',()=>{a.currentTime=a.duration*.35;r()},{once:true});a.addEventListener('error',r,{once:true})});a.src=src}
+  return players[src]}
 function play(sec){
-  const src=sec&&sec.dataset.audio,next=src&&(players[src]||=Object.assign(new Audio(src),{loop:true,volume:0}));
-  if(next&&!next._seeked)next.addEventListener('loadedmetadata',()=>{next.currentTime=next.duration*.35},{once:true}),next._seeked=1;
+  const src=sec&&sec.dataset.audio,next=src&&player(src);
   // fade out every other player, not just the last one: fast scrolling could leave a half-faded song running
   Object.values(players).forEach(a=>{if(a!==next||!sound)a.paused?cancelAnimationFrame(a._f):fade(a,0)});
   if(next&&sound){next.play().catch(()=>{});fade(next,1)}
@@ -805,7 +825,7 @@ function count(h){const n=+h.dataset.n,t0=performance.now();
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   (function f(t){const k=Math.min(1,(t-t0)/1400),s=Math.round(n*(1-Math.pow(1-k,4))).toLocaleString('en-US');
     if(h.textContent!==s)h.textContent=s;if(k<1)requestAnimationFrame(f)})(t0)}
-let active=null,settled=true,st;
+let active=null,settled=false,st;  // settled turns true when the loading screen is dismissed
 // a slide animates in only once scrolling has stopped, so the swipe itself never competes with text animation
 function enter(sec){if(sec.classList.contains('in'))return;sec.classList.add('in');
   const idx=secs.indexOf(sec);[...dots.children].forEach((d,i)=>d.className=i===idx?'on':i<idx?'past':'');
@@ -821,7 +841,19 @@ const io=new IntersectionObserver(es=>es.forEach(en=>{
 secs.forEach(s=>io.observe(s));
 function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active);wake()}
 mute.onclick=()=>setSound(!sound);
-document.getElementById('start').onclick=()=>{setSound(true);secs[1]&&secs[1].scrollIntoView()};
+// loading screen: everything a slide needs is ready before the first one shows, so nothing pops in or hitches mid-animation
+const load=document.getElementById('load'),wait=ms=>new Promise(r=>setTimeout(r,ms));
+document.documentElement.classList.add('loading');
+{const jobs=[document.fonts.ready.then(fit),
+    ...[...document.images].map(i=>i.decode().catch(()=>{})),  // decoded now, not on the frame the slide arrives
+    ...secs.filter(s=>s.dataset.audio).map((s,i)=>i?(player(s.dataset.audio),0):player(s.dataset.audio)._ready)];  // first song buffered, the rest just metadata
+  let n=0;jobs.forEach(j=>Promise.resolve(j).finally(()=>load.querySelector('.prog i').style.width=++n/jobs.length*100+'%'));
+  // at least long enough to see the record, never more than 8s even on a slow connection
+  Promise.all([Promise.race([Promise.all(jobs),wait(8000)]),wait(1200)]).then(()=>{load.classList.add('ready');
+    load.querySelector('p').textContent='Ready when you are'})}
+function begin(){if(!load.classList.contains('ready')||load.classList.contains('done'))return;
+  load.classList.add('done');document.documentElement.classList.remove('loading');setSound(true);settle()}
+load.onclick=begin;
 // Save image: the card is an SVG, so serialize it with the embedded fonts and rasterize it: exactly what's on screen.
 document.getElementById('save').onclick=async ev=>{
   const btn=ev.currentTarget;btn.disabled=true;
@@ -844,7 +876,7 @@ share.onclick=async()=>{const url=location.href.split('#')[0];
   try{await navigator.clipboard.writeText(url);share.textContent='✓ Link copied'}catch{prompt('Copy this link',url)}
   setTimeout(()=>share.textContent='↗ Share',2000)};
 // SVG text can't wrap or ellipsize: once fonts are in, shrink data-fs text to fit, then trim data-w text with an ellipsis.
-document.fonts.ready.then(()=>{
+function fit(){
   document.querySelectorAll('textPath[data-unit]').forEach(tp=>{const u=tp.dataset.unit;tp.textContent=u;
     const w=tp.parentNode.getComputedTextLength();if(w)tp.textContent=u.repeat(Math.max(1,Math.floor(804/w)))});
   // headlines: shrink until the longest word fits (wide fonts would otherwise overflow or split words)
@@ -854,17 +886,18 @@ document.fonts.ready.then(()=>{
   document.querySelectorAll('text[data-fs]').forEach(t=>{const w=+t.dataset.fs;let f=+t.getAttribute('font-size');
     while(f>(+t.dataset.min||14)&&t.getComputedTextLength()>w){f*=.94;t.setAttribute('font-size',f.toFixed(1))}});
   document.querySelectorAll('text[data-w]').forEach(t=>{const w=+t.dataset.w;let s=t.textContent;
-    while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}})});
+    while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}})}
 let tgt=null;  // pending target while a smooth scroll runs, so quick taps queue up instead of being lost
 function go(d){
   const i=tgt??secs.reduce((b,s,j)=>Math.abs(s.getBoundingClientRect().top)<Math.abs(secs[b].getBoundingClientRect().top)?j:b,0),t=secs[i+d];
   if(!t)return;tgt=i+d;t.scrollIntoView();clearTimeout(go.t);go.t=setTimeout(()=>tgt=null,900);return true}
 document.addEventListener('keydown',ev=>{
+  if(document.documentElement.classList.contains('loading')){if(['Enter',' '].includes(ev.key))begin(),ev.preventDefault();return}
   if(['ArrowDown','PageDown',' '].includes(ev.key)&&go(1))ev.preventDefault();
   if(['ArrowUp','PageUp'].includes(ev.key)&&go(-1))ev.preventDefault()});
 // tap/click to advance (left edge goes back), like stories; scrolling still works
 document.addEventListener('click',ev=>{
-  if(ev.target.closest('button,a,input')||String(getSelection()).length)return;
+  if(ev.target.closest('button,a,input,#load')||String(getSelection()).length)return;
   go(ev.clientX<innerWidth*.25?-1:1)});
 // background tab or screen off: rAF fades stall, so pause hard and resume on return
 document.addEventListener('visibilitychange',()=>{
@@ -890,8 +923,7 @@ def render(s, year, media=None, seed=None, month=None):
         ("intro", f"Your {period} in music", [
             lambda t: g.number(s["minutes"], t),
             lambda t: g.text("minutes listened", t),
-            lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub"),
-            lambda t: g.anim("<p><button id=start>▶ Play my Wrapped</button></p>", t)]),
+            lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub")]),
         ("artist", "Your top artist", [
             lambda t: g.headline(a1[0], t), lambda t: g.text(f"{a1[1]} plays", t),
             lambda t: g.ranks([(e(a), n) for a, n in s["artists"][1:10]], t)]),
@@ -953,7 +985,9 @@ def render(s, year, media=None, seed=None, month=None):
     return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=theme-color content="{g.palette[0][0]}">'
             f'<meta name=generator content="navidrome-wrapped, design seed {g.seed}"><title>Wrapped {short}</title>'
             f'<style id=fonts>{g.font_css(body)}</style><style>{CSS}{root}{"".join(g.css)}</style><button id=mute aria-label=Unmute>🔇</button><nav id=dots aria-hidden=true></nav><small id=seed>seed {g.seed}</small>'
-            f'{body}<script>{JS}</script></html>')
+            f'<div id=load style="--a:{g.palette[0][0]};--b:{g.palette[0][1]}" role=dialog aria-label="Wrapped {short}"><div class=deck><div class=disc><b>{e(short)}</b></div></div>'
+            f'<p>Warming up your {unit}</p><div class=prog><i></i></div><button id=start>▶ Tap to play</button><small>sound on</small></div>'
+            f'<noscript><style>#load{{display:none}}</style></noscript>{body}<script>{JS}</script></html>')
 
 
 def section(g, i, key, content, media, decor=True):
@@ -961,7 +995,7 @@ def section(g, i, key, content, media, decor=True):
     a, b = g.palette[i % len(g.palette)]
     attr = (f' data-audio="{e(m["audio"])}" data-title="{e(m["title"])}" data-artist="{e(m["artist"])}"'
             + (f' data-cover="{e(m["cover"])}"' if m.get("cover") else "")) if m.get("audio") else ""
-    img = f'src="{e(m["cover"])}" alt="" loading=lazy decoding=async' if m.get("cover") else ""
+    img = f'src="{e(m["cover"])}" alt=""' if m.get("cover") else ""
     bg = f"<img class=bg {img}>" if img else ""
     deco = "".join(g.decor() for _ in range(g.r.choice([1, 1, 2]))) if decor else ""
     np = (f"<figure class=np>{f'<img {img}>' if img else ''}"
