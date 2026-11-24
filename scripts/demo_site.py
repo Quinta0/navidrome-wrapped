@@ -49,67 +49,145 @@ def card(seed, s, k):
     return svg, pat + f".c{k} .patmove{{animation:cpat{k} {8 + k % 5}s linear infinite}}", g
 
 
+
 CSS = """
 *{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:#0b0b0d;color:#f3f1ec;font:17px/1.55 system-ui,sans-serif;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
-a{color:inherit}h1,h2,.disp{font-family:var(--disp);font-weight:800;letter-spacing:-.035em;line-height:.92;margin:0}
-.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
-/* moving colour behind the hero: gradients on composited layers, no filters (cheap in every browser) */
+body{margin:0;background:#0b0b0d;color:#f3f1ec;font:17px/1.6 system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+a{color:inherit}h1,h2,h3,.disp{font-family:var(--disp);font-weight:800;letter-spacing:-.035em;line-height:.92;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+.kicker{font:700 13px/1 system-ui;letter-spacing:.18em;text-transform:uppercase;color:var(--acc,var(--b));margin:0 0 18px}
+h2{font-size:clamp(44px,8vw,104px);margin-bottom:.3em}.sub{font-size:clamp(17px,2vw,21px);opacity:.75;max-width:34em;margin:0 0 36px}
+/* colour drifting behind everything: big gradients on their own layers, no filters, so it's cheap in every browser */
 .glow{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.glow i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;opacity:.5;background:radial-gradient(circle,var(--c) 0,transparent 62%);animation:roam 26s ease-in-out infinite alternate}
-.glow i:nth-child(1){--c:var(--a);left:-25vmax;top:-20vmax}.glow i:nth-child(2){--c:var(--b);right:-30vmax;top:10vh;animation-duration:32s;animation-direction:alternate-reverse}
-.glow i:nth-child(3){--c:var(--a);left:20vw;bottom:-45vmax;animation-duration:38s}
-@keyframes roam{to{transform:translate(12vmax,8vmax) scale(1.15)}}
-header.hero{min-height:100svh;display:grid;align-content:center;gap:28px;padding:80px 22px 60px;position:relative}
-.hero .top{display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px}
-.hero h1{font-size:clamp(64px,13vw,170px);white-space:nowrap}.hero h1 span{display:inline-block;animation:rise .9s cubic-bezier(.2,.9,.25,1) calc(var(--i) * 55ms + .1s) both}
-@keyframes rise{from{opacity:0;transform:translateY(.5em) rotate(6deg)}}
-.lede{font-size:clamp(19px,2.4vw,24px);max-width:34em;margin:0;opacity:.85;animation:fade 1s .7s both}@keyframes fade{from{opacity:0;transform:translateY(12px)}}
-.cta{display:flex;flex-wrap:wrap;gap:12px;animation:fade 1s .9s both}
-.btn{display:inline-flex;align-items:center;gap:.5em;padding:.85em 1.5em;border-radius:99px;font-weight:700;text-decoration:none;border:0;font-size:17px;cursor:pointer;transition:transform .2s}
+.glow i{position:absolute;width:75vmax;height:75vmax;border-radius:50%;opacity:.45;background:radial-gradient(circle,var(--c) 0,transparent 62%);animation:roam 28s ease-in-out infinite alternate}
+.glow i:nth-child(1){--c:var(--a);left:-28vmax;top:-22vmax}.glow i:nth-child(2){--c:var(--b);right:-32vmax;top:20vh;animation-duration:34s;animation-direction:alternate-reverse}
+@keyframes roam{to{transform:translate(12vmax,10vmax) scale(1.15)}}
+.btn{display:inline-flex;align-items:center;gap:.5em;padding:.9em 1.6em;border-radius:99px;font:700 17px system-ui;text-decoration:none;border:0;cursor:pointer;transition:transform .2s;color:inherit;background:none}
 .btn:hover{transform:translateY(-2px)}.btn:active{transform:scale(.97)}.btn.main{background:#f3f1ec;color:#0b0b0d}.btn.alt{border:1.5px solid #f3f1ec55}
-.btn:focus-visible{outline:3px solid #f3f1ec;outline-offset:3px}
-.deck{position:relative;width:clamp(150px,30vw,340px);aspect-ratio:1;animation:fade 1.2s .3s both}
-.disc{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;box-shadow:0 30px 80px #000a;animation:spin 3.2s linear infinite;
+.btn:focus-visible{outline:3px solid #f3f1ec;outline-offset:3px}.cta{display:flex;flex-wrap:wrap;gap:12px;margin:0}
+/* hero: the title rises letter by letter, then everything drifts away as you scroll (--p: 0 at the top, 1 once it's gone) */
+.hero{min-height:100svh;display:grid;align-items:center;position:relative;padding:90px 0 70px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:center;gap:20px;width:100%}
+.hero .txt{position:relative;z-index:1;transform:translateY(calc(var(--p,0) * -140px));opacity:calc(1 - var(--p,0) * 1.6)}
+.hero h1 .l1{display:block;font-size:clamp(40px,5.6vw,84px);font-weight:600;letter-spacing:-.02em;color:var(--b);margin-bottom:.06em}
+.hero h1 .l2{display:block;font-size:clamp(72px,10vw,150px);white-space:nowrap}
+.hero h1 span span{display:inline-block;animation:rise .9s cubic-bezier(.2,.9,.25,1) calc(var(--i) * 50ms + .1s) both}
+@keyframes rise{from{opacity:0;transform:translateY(.55em) rotate(7deg)}}
+.lede{font-size:clamp(19px,2.3vw,24px);max-width:30em;margin:26px 0 30px;opacity:.88;animation:fade 1s .75s both}.hero .cta{animation:fade 1s .95s both}
+@keyframes fade{from{opacity:0;transform:translateY(14px)}}
+.deck{position:relative;width:min(100%,440px);aspect-ratio:1;justify-self:end;animation:fade 1.2s .3s both;
+  transform:translateY(calc(var(--p,0) * 34vh)) scale(calc(1 + var(--p,0) * .35)) rotate(calc(var(--p,0) * 90deg))}
+.disc{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;box-shadow:0 40px 90px #000b;animation:spin 3.2s linear infinite;
   background:radial-gradient(circle,#0b0b0d 0 2.4%,transparent 2.6%),radial-gradient(circle,var(--b) 0 31%,#0000 31.4%),
   radial-gradient(circle,#0000 0 95%,#2a2a2a 96%),repeating-radial-gradient(circle,#141414 0 2px,#1d1d1d 2px 4px)}
-.disc b{font:800 clamp(16px,3vw,30px)/1 var(--disp);translate:0 -.85em;color:var(--fg)}
+.disc b{font:800 clamp(18px,3vw,34px)/1 var(--disp);translate:0 -.85em;color:var(--fg)}
 .deck::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 20deg,#0000,#fff2 8%,#0000 16%,#0000 50%,#fff2 58%,#0000 66%);
   mask:radial-gradient(circle,#0000 31%,#000 31.5% 96%,#0000 96.5%)}
 @keyframes spin{to{transform:rotate(1turn)}}
-.scroll{position:absolute;bottom:22px;left:50%;translate:-50% 0;font-size:13px;opacity:.5;letter-spacing:.15em;text-transform:uppercase;animation:bob 2s ease-in-out infinite}
-@keyframes bob{50%{transform:translateY(6px)}}
-section{padding:70px 0}
-h2{font-size:clamp(40px,7vw,84px);margin-bottom:.35em}.sub{opacity:.7;max-width:36em;margin:0 0 34px}
-/* the card strip: two copies scrolling forever */
-.strip{overflow:hidden;padding:30px 0 50px;mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
-.track{display:flex;gap:28px;width:max-content;animation:slide 70s linear infinite}.strip:hover .track{animation-play-state:paused}
-@keyframes slide{to{transform:translateX(calc(-50% - 14px))}}
-.strip a{display:block;width:250px;flex:none;transition:transform .35s cubic-bezier(.2,.9,.3,1)}
-.strip a:nth-child(odd){rotate:-2.5deg}.strip a:nth-child(even){rotate:2deg;margin-top:26px}
-.strip a:hover,.strip a:focus-visible{transform:translateY(-10px) scale(1.04);outline:none}
-.strip svg{display:block;width:100%;height:auto;box-shadow:0 24px 50px #000b}
-.strip .sticker,.strip .vinyl{transform-box:fill-box;transform-origin:center;animation:spin 24s linear infinite}
-.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
-.feat div{padding:22px;border-radius:20px;background:#ffffff0b;border:1px solid #ffffff14}.feat b{display:block;font-size:19px;margin-bottom:6px}.feat p{margin:0;opacity:.75}
-pre{position:relative;margin:0 0 14px;padding:20px 22px;border-radius:16px;background:#ffffff0d;border:1px solid #ffffff14;overflow-x:auto;font:14px/1.6 ui-monospace,monospace}
-.copy{position:absolute;top:10px;right:10px;padding:.4em .9em;font-size:13px;border-radius:99px;border:0;background:#f3f1ec;color:#0b0b0d;font-weight:700;cursor:pointer}
-.reveal{opacity:0;transform:translateY(30px);transition:opacity .8s,transform .8s cubic-bezier(.2,.9,.3,1)}.reveal.in{opacity:1;transform:none}
-footer{padding:40px 0 60px;opacity:.6;font-size:14px}
-@media (max-width:640px){.hero .top{grid-template-columns:1fr}.deck{justify-self:start;width:46vw}.strip a{width:200px}}
+.scroll{position:absolute;bottom:24px;left:50%;translate:-50% 0;font-size:12px;opacity:.55;letter-spacing:.2em;text-transform:uppercase;animation:bob 2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(7px)}}
+/* a band of words pushed sideways by the scroll */
+.band{overflow:hidden;padding:26px 0;border-block:1px solid #ffffff1a;white-space:nowrap}
+.band div{display:inline-block;font:800 clamp(40px,7vw,92px)/1 var(--disp);letter-spacing:-.03em;transform:translateX(calc(var(--p,0) * -38%))}
+.band div:nth-child(2){display:block;margin-top:6px;color:transparent;-webkit-text-stroke:1.5px #f3f1ec66;transform:translateX(calc(-38% + var(--p,0) * 38%))}
+section{padding:110px 0}
+/* tour: pinned; scrolling walks through the features while a live demo in the phone jumps to the matching slide */
+.tour{height:calc(var(--n) * 85svh + 100svh);padding:0}
+.stick{position:sticky;top:0;height:100svh;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:56px;max-width:1120px;margin:0 auto;padding:0 22px}
+.steps{position:relative;min-height:360px}
+.step{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;opacity:0;transform:translateY(40px);transition:opacity .5s,transform .6s cubic-bezier(.2,.9,.3,1);pointer-events:none}
+.step.on{opacity:1;transform:none;pointer-events:auto}
+.step .num{font:800 clamp(64px,9vw,120px)/1 var(--disp);color:var(--acc);margin-bottom:10px}
+.step h3{font-size:clamp(36px,5vw,64px);margin-bottom:.35em}.step p{font-size:clamp(17px,1.8vw,20px);opacity:.8;max-width:28em;margin:0}
+.bar{position:absolute;left:22px;right:22px;bottom:26px;display:flex;gap:6px}.bar i{flex:1;height:3px;border-radius:3px;background:#ffffff26;overflow:hidden}
+.bar i::after{content:"";display:block;height:100%;background:var(--acc);transform:scaleX(var(--f,0));transform-origin:left}
+.phone{position:relative;height:min(80svh,720px);aspect-ratio:390/844;border-radius:42px;padding:10px;background:#1a1a1d;box-shadow:0 0 0 2px #333,0 40px 100px #000c}
+.screen{width:100%;height:100%;border-radius:33px;overflow:hidden;position:relative;background:#000}
+.screen iframe{position:absolute;top:0;left:0;width:390px;height:844px;border:0;transform:scale(var(--k,1));transform-origin:0 0;pointer-events:none}
+.shuffle{position:absolute;left:50%;bottom:-58px;translate:-50% 0;white-space:nowrap;font-size:15px;padding:.6em 1.2em}
+/* design strip: pinned, slides sideways as you scroll down */
+.designs{height:340svh;padding:0}
+.designs .stick{display:flex;flex-direction:column;justify-content:center;gap:0;max-width:none;padding:0;overflow:hidden}.designs h2{font-size:clamp(40px,min(7vw,9svh),96px)}.designs .sub{margin-bottom:10px}
+.designs .head{max-width:1120px;width:100%;margin:0 auto;padding:0 22px}
+.track{display:flex;gap:34px;padding:30px 22px 40px;width:max-content;transform:translateX(calc(var(--p,0) * var(--dx,0) * -1px))}
+.track a{display:block;width:clamp(170px,min(22vw,30svh),270px);flex:none;transition:transform .35s cubic-bezier(.2,.9,.3,1);rotate:calc((var(--p,0) - .5) * var(--r) * 1deg)}
+.track a:nth-child(odd){--r:-14;margin-top:34px}.track a:nth-child(even){--r:12}
+.track a:hover,.track a:focus-visible{transform:translateY(-12px) scale(1.04);outline:none}
+.track svg{display:block;width:100%;height:auto;box-shadow:0 26px 60px #000c}
+.track .sticker,.track .vinyl{transform-box:fill-box;transform-origin:center;animation:spin 24s linear infinite}
+/* generator numbers */
+.gen{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px}
+.gen div{padding:24px;border-radius:22px;background:#ffffff0a;border:1px solid #ffffff14}
+.gen b{display:block;font:800 clamp(52px,6vw,76px)/1 var(--disp);color:var(--acc)}.gen strong{display:block;font-size:20px;margin:8px 0 6px}.gen p{margin:0;opacity:.72}
+/* timeline: the months light up as you scroll past */
+.tl{display:grid;grid-template-columns:repeat(12,1fr) 2.6fr;gap:8px;margin:40px 0 46px}
+.tl i{display:grid;place-items:center;aspect-ratio:3/4;border-radius:14px;font:800 clamp(14px,2vw,22px) var(--disp);font-style:normal;
+  background:color-mix(in srgb,var(--acc) calc(clamp(0, var(--p,0) * 22 - var(--i) - 4, 1) * 100%),#ffffff0d);
+  color:color-mix(in srgb,#0b0b0d calc(clamp(0, var(--p,0) * 22 - var(--i) - 4, 1) * 100%),#f3f1ec)}
+.tl i.y{aspect-ratio:auto;font-size:clamp(22px,4vw,48px);transform:scale(calc(.85 + clamp(0, var(--p,0) * 22 - 17, 1) * .15))}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.modes div{padding:22px;border-radius:20px;border:1px solid #ffffff1f}.modes code{font:700 15px ui-monospace,monospace;color:var(--acc)}.modes p{margin:8px 0 0;opacity:.75}
+/* feature lists */
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.feat div{padding:26px;border-radius:22px;background:#ffffff0a;border:1px solid #ffffff14}
+.feat b{display:block;font-size:20px;margin-bottom:8px}.feat p{margin:0;opacity:.75}.feat i{display:block;width:34px;height:4px;border-radius:4px;background:var(--acc);margin-bottom:18px}
+.private{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
+.private ul{margin:0;padding:0;list-style:none;display:grid;gap:14px}.private li{padding:18px 20px;border-radius:18px;background:#ffffff0a;border-left:4px solid var(--acc)}
+/* install */
+.install{counter-reset:s;display:grid;gap:18px}.install>div{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px}
+.install>div::before{counter-increment:s;content:counter(s);font:800 42px/1 var(--disp);color:var(--acc)}
+.install h3{font-size:26px;margin:6px 0 10px}
+pre{position:relative;margin:0;padding:20px 22px;border-radius:16px;background:#ffffff0d;border:1px solid #ffffff14;overflow-x:auto;font:14px/1.6 ui-monospace,monospace}
+.copy{position:absolute;top:10px;right:10px;padding:.4em .9em;font:700 13px system-ui;border-radius:99px;border:0;background:#f3f1ec;color:#0b0b0d;cursor:pointer}
+.hosts{opacity:.75;margin:22px 0 30px}
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .8s calc(var(--d,0) * 90ms),transform .8s cubic-bezier(.2,.9,.3,1) calc(var(--d,0) * 90ms)}.reveal.in{opacity:1;transform:none}
+footer{padding:40px 0 70px;opacity:.6;font-size:14px}
+@media (max-width:800px){
+  .hero .wrap{grid-template-columns:1fr}.deck{justify-self:start;width:52vw;margin-top:8px;order:-1}
+  .stick{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);align-content:center;gap:18px;padding:16px 18px 50px}
+  .stick{grid-template-rows:34svh auto;align-content:start;padding-top:max(22px,env(safe-area-inset-top))}
+  .phone{height:calc(66svh - 96px);justify-self:center;border-radius:30px;padding:7px}.screen{border-radius:24px}.shuffle{display:none}
+  .steps{min-height:0;height:100%}.step{justify-content:flex-end}.step .num{font-size:34px;margin-bottom:2px}.step h3{font-size:clamp(24px,7vw,30px);margin-bottom:.25em}.step p{font-size:15px;line-height:1.5}
+  .tl{grid-template-columns:repeat(6,1fr)}.tl i.y{grid-column:1/-1;aspect-ratio:auto;padding:12px}
+  .private{grid-template-columns:1fr}section{padding:80px 0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
 """
 
 JS = """
-const demos=%s;document.querySelectorAll('[data-demo]').forEach(a=>a.onclick=ev=>{ev.preventDefault();location.href='demo/'+demos[Math.floor(Math.random()*demos.length)]+'/'});
-const io=new IntersectionObserver(es=>es.forEach(en=>en.isIntersecting&&(en.target.classList.add('in'),io.unobserve(en.target))),{threshold:.15});
+const demos=%s,keys=%s;
+const clamp=x=>Math.min(1,Math.max(0,x));
+document.querySelectorAll('[data-demo]').forEach(a=>a.onclick=ev=>{ev.preventDefault();location.href='demo/'+demos[Math.floor(Math.random()*demos.length)]+'/'});
+// scroll progress as --p: data-p="exit" goes 0->1 as the element scrolls away, "through" while it crosses the screen; pinned sections 0->1 while pinned
+const exits=[...document.querySelectorAll('[data-p=exit]')],throughs=[...document.querySelectorAll('[data-p=through]')],pins=[...document.querySelectorAll('[data-pin]')];
+let queued=false;
+function update(){queued=false;const h=innerHeight;
+  for(const el of exits){const r=el.getBoundingClientRect();el.style.setProperty('--p',clamp(-r.top/r.height).toFixed(4))}
+  for(const el of throughs){const r=el.getBoundingClientRect();el.style.setProperty('--p',clamp((h-r.top)/(r.height+h)).toFixed(4))}
+  for(const el of pins){const r=el.getBoundingClientRect(),p=clamp(-r.top/Math.max(1,r.height-h));el.style.setProperty('--p',p.toFixed(4));el.onp&&el.onp(p)}}
+addEventListener('scroll',()=>{if(!queued){queued=true;requestAnimationFrame(update)}},{passive:true});
+// tour: which step is showing, and the demo inside the phone follows it
+const tour=document.querySelector('.tour'),steps=[...tour.querySelectorAll('.step')],bars=[...tour.querySelectorAll('.bar i')],
+  fr=tour.querySelector('iframe'),phone=tour.querySelector('.phone');let cur=-1,live=false;
+function show(){if(!live)return;try{const d=fr.contentDocument,s=d.querySelector('section.'+keys[cur]);if(s)fr.contentWindow.scrollTo({top:s.offsetTop,behavior:'smooth'})}catch{}}
+tour.onp=p=>{const n=steps.length,i=Math.min(n-1,Math.floor(p*n*.999));bars.forEach((b,j)=>b.style.setProperty('--f',clamp(p*n-j).toFixed(3)));
+  if(i!==cur){cur=i;steps.forEach((s,j)=>s.classList.toggle('on',j===i));show()}};
+fr.addEventListener('load',()=>{live=false;let d;try{d=fr.contentDocument}catch{return}
+  (function go(){const L=d.getElementById('load');if(L&&L.classList.contains('ready')){L.click();live=true;setTimeout(show,300)}else setTimeout(go,200)})()});
+let pick=0;document.querySelector('.shuffle').onclick=()=>{pick=(pick+1)%%demos.length;fr.src='demo/'+demos[pick]+'/'};
+function size(){fr.style.setProperty('--k',(phone.querySelector('.screen').clientHeight/844).toFixed(4));
+  const t=document.querySelector('.track');t.style.setProperty('--dx',Math.max(0,t.scrollWidth-innerWidth))}
+addEventListener('resize',()=>{size();update()});size();update();
+// reveal on the way in, and count the numbers up
+const io=new IntersectionObserver(es=>es.forEach(en=>{if(!en.isIntersecting)return;io.unobserve(en.target);en.target.classList.add('in');
+  en.target.querySelectorAll('[data-count]').forEach(b=>{const n=+b.dataset.count,t0=performance.now();
+    (function f(t){const k=Math.min(1,(t-t0)/1200);b.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)})(t0)})}),{threshold:.2});
 document.querySelectorAll('.reveal').forEach(x=>io.observe(x));
 document.querySelectorAll('.copy').forEach(b=>b.onclick=async()=>{await navigator.clipboard.writeText(b.parentNode.querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)});
-// card text: same fitting the app does (SVG text can't wrap or shrink by itself)
+// card text: the same fitting the app does (SVG text can't wrap or shrink by itself)
 document.fonts.ready.then(()=>{
   document.querySelectorAll('textPath[data-unit]').forEach(tp=>{const u=tp.dataset.unit;tp.textContent=u;const w=tp.parentNode.getComputedTextLength();if(w)tp.textContent=u.repeat(Math.max(1,Math.floor(804/w)))});
   document.querySelectorAll('text[data-fs]').forEach(t=>{const w=+t.dataset.fs;let f=+t.getAttribute('font-size');while(f>(+t.dataset.min||14)&&t.getComputedTextLength()>w){f*=.94;t.setAttribute('font-size',f.toFixed(1))}});
-  document.querySelectorAll('text[data-w]').forEach(t=>{const w=+t.dataset.w;let s=t.textContent;while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}})});
+  document.querySelectorAll('text[data-w]').forEach(t=>{const w=+t.dataset.w;let s=t.textContent;while(s&&t.getComputedTextLength()>w){s=s.slice(0,-1);t.textContent=s.trimEnd()+'…'}});size()});
 """
 
 COMPOSE = """services:
@@ -129,6 +207,30 @@ ND_URL=http://192.168.1.10:4533   # Navidrome: songs, covers, genres
 ND_USER=you
 ND_PASS=..."""
 
+# (slide shown in the phone, title, text)
+TOUR = [("intro", "Every minute, counted", "Minutes listened, plays, active days and how many full days of audio that adds up to. It opens on a spinning record that gets every slide ready, then starts your music when you tap."),
+        ("artist", "Your top artists, songs and albums", "Ranked as a podium, tiles, a word cloud, a ticker or a list, depending on the design. Each slide plays a matching song from your own Navidrome library."),
+        ("new", "Who you discovered", "Artists you'd never played before this period, checked against your entire listening history, with your biggest find up front."),
+        ("hour", "When you listen", "Your peak hour, your busiest weekdays and your peak month, drawn as bars, dots, lines, heatmaps or radial charts."),
+        ("streak", "Streaks and your library", "Your longest run of days with music, your biggest day, and stats from your Navidrome server: songs, starred, never played, all-time favourites."),
+        ("summary", "A card made to share", "Everything on one summary card in one of six layouts. Save it as an image, exactly as it looks, or share the link to the whole recap.")]
+GEN = [(40, "fonts", "Bundled variable fonts. Each design picks two and a random point in their design space: weight, width, slant, even 3D tilt or bounce."),
+       (13, "colour schemes", "Analogous, triad, duotone, rainbow and more. Every colour is checked against the text so it always stays readable."),
+       (13, "decorations", "Blobs, halftone, contour lines, confetti, spirals, stars… drawn fresh for every slide."),
+       (6, "card layouts", "Year band, banner, poster, vinyl, polaroid or big type, framed by one of 13 patterns, with stickers and dividers."),
+       (19, "ways to show data", "5 number styles, 4 headline styles, 5 rankings and 5 chart types, chosen per slide."),
+       (64, "bits of seed", "Every design is a number. Like one? Set THEME_SEED and keep it.")]
+PHONE = [("Tap like stories", "Tap the right side to go forward and the left to go back, or swipe. Keyboard arrows work on desktop."),
+         ("Music on every slide", "Songs fade into each other, start part-way in past the intro, and pause when you switch tabs."),
+         ("Lock screen controls", "The current song and its cover show on your lock screen; next and previous skip slides."),
+         ("Fits your phone", "Respects the notch and home bar, tints the browser bar to each slide and keeps the screen awake while it plays."),
+         ("Smooth everywhere", "Tested frame by frame in Chrome, Firefox and Safari's engine, with every animation chosen to stay smooth."),
+         ("Overview of every recap", "One page lists them all, each card in its recap's own colours, with minutes and top artist.")]
+PRIVATE = ["Runs on your own server: one small container, no database, no account, no tracking.",
+           "Recaps are static pages. Songs and covers are copied in, so a shared link never contains your credentials.",
+           "Python standard library only: nothing to update but the container itself.",
+           "Free software under the GPL-3.0. Read it, change it, run it anywhere."]
+
 
 def landing(s):
     cards, css, fonts = "", "", {}
@@ -139,31 +241,48 @@ def landing(s):
         fonts.update(dict.fromkeys(g.fonts))
     hero = Gen(SEEDS[0])
     a, b = hero.palette[0]
-    title = "".join(f'<span style="--i:{i}">{c}</span>' for i, c in enumerate("Wrapped"))
-    text = cards + " ".join(ARTISTS + TITLES)
-    font_css = "".join(font_face(n, text) for n in fonts) + font_face("Funnel Display", "Wrapped")
-    feats = [("A new design every time", "Colours, two variable fonts, motion, decorations and the layout of every slide grow from a random seed. Keep one you like."),
-             ("Your own music", "Built from your ListenBrainz and/or Last.fm history, with songs, covers and genres from your Navidrome server."),
-             ("Monthly and yearly", "A recap on the 1st of every month and every January 1, plus all the past ones from your history."),
-             ("Share it", "Every recap is a static page with no credentials in it. Save the summary card as an image or send the link."),
-             ("Smooth everywhere", "Tested frame by frame in Chrome, Firefox and Safari's engine, on phone-sized screens."),
-             ("One small container", "Python standard library only, no database. Runs on Unraid, TrueNAS or anything with Docker.")]
+    acc = [Gen(x).card["accent"] for x in SEEDS]  # a different design's accent for each section
+    letters = lambda w, o=0: "".join(f'<span style="--i:{i + o}">{c}</span>' for i, c in enumerate(w))
+    text = cards + " ".join(ARTISTS + TITLES) + "navidrome wrapped"
+    font_css = "".join(font_face(n, text) for n in fonts) + font_face("Funnel Display", "navidrome wrapped 0123456789")
+    tour = "".join(f'<article class=step><span class=num>{i + 1:02d}</span><h3>{e(t)}</h3><p>{e(d)}</p></article>' for i, (_, t, d) in enumerate(TOUR))
+    gen = "".join(f'<div class=reveal style="--d:{i}"><b data-count="{n}">{n}</b><strong>{e(t)}</strong><p>{e(d)}</p></div>' for i, (n, t, d) in enumerate(GEN))
+    months = "".join(f'<i style="--i:{i}">{m}</i>' for i, m in enumerate("JFMAMJJASOND")) + f'<i class=y style="--i:12">{YEAR}</i>'
+    feats = "".join(f'<div class=reveal style="--d:{i % 3}"><i></i><b>{e(t)}</b><p>{e(d)}</p></div>' for i, (t, d) in enumerate(PHONE))
     return f"""<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>navidrome-wrapped: your year in music, self-hosted</title><meta name=description content="A self-hosted, Spotify-Wrapped-style recap from your ListenBrainz or Last.fm history and your Navidrome library. A new generated design every time.">
+<title>navidrome wrapped: your year in music, self-hosted</title><meta name=description content="A self-hosted, Spotify-Wrapped-style recap from your ListenBrainz or Last.fm history and your Navidrome library. A new generated design every time.">
 <meta name=theme-color content="#0b0b0d"><style>{font_css}:root{{--disp:'Funnel Display',system-ui,sans-serif;--a:{a};--b:{b};--fg:{hero.fg}}}{CSS}{css}</style>
-<div class=glow aria-hidden=true><i></i><i></i><i></i></div>
-<header class="hero wrap"><div class=top><h1 aria-label=Wrapped>{title}</h1><div class=deck aria-hidden=true><div class=disc><b>{YEAR}</b></div></div></div>
-<p class=lede>Your year in music, self-hosted. A Wrapped-style recap from your ListenBrainz or Last.fm history and your Navidrome library, with a design generated just for it.</p>
-<p class=cta><a class="btn main" href="demo/{SEEDS[0]}/" data-demo>▶ Watch a demo</a><a class="btn alt" href="{REPO}">Get it on GitHub ↗</a></p>
-<span class=scroll aria-hidden=true>scroll</span></header>
-<section><div class="wrap reveal"><h2>Every recap designs itself</h2><p class=sub>Each of these summary cards is a different seed. Tap one to watch its whole recap.</p></div>
-<div class=strip><div class=track>{cards}{cards.replace('<a ', '<a tabindex=-1 aria-hidden=true ')}</div></div></section>
-<section><div class="wrap reveal"><h2>What you get</h2><div class=feat>{"".join(f"<div><b>{e(t)}</b><p>{e(d)}</p></div>" for t, d in feats)}</div></div></section>
-<section><div class="wrap reveal"><h2>Get yours</h2><p class=sub>Two files and one command. The first build reads your listening history once, then new recaps arrive on their own.</p>
-<pre><button class=copy>Copy</button><code>{e(COMPOSE)}</code></pre><pre><button class=copy>Copy</button><code>{e(ENV)}</code></pre>
-<pre><button class=copy>Copy</button><code>docker compose up -d</code></pre><p class=cta><a class="btn main" href="{REPO}#self-host-with-docker">Full setup guide ↗</a></p></div></section>
-<footer class=wrap>navidrome-wrapped is free software (GPL-3.0). Demo recaps use made-up artists and play no music. <a href="{REPO}">Source on GitHub</a></footer>
-<script>{JS % [str(x) for x in SEEDS]}</script></html>"""
+<div class=glow aria-hidden=true><i></i><i></i></div>
+<header class=hero data-p=exit><div class=wrap><div class=txt>
+<h1 aria-label="navidrome wrapped"><span class=l1 aria-hidden=true>{letters("navidrome")}</span><span class=l2 aria-hidden=true>{letters("wrapped", 9)}</span></h1>
+<p class=lede>Your year in music, self-hosted. An animated, Wrapped-style recap of your ListenBrainz or Last.fm history and your Navidrome library, with a design generated just for it.</p>
+<p class=cta><a class="btn main" href="demo/{SEEDS[0]}/" data-demo>▶ Watch a demo</a><a class="btn alt" href="{REPO}">Get it on GitHub ↗</a></p></div>
+<div class=deck aria-hidden=true><div class=disc><b>{YEAR}</b></div></div></div><span class=scroll aria-hidden=true>scroll</span></header>
+<div class=band data-p=through aria-hidden=true><div>MINUTES · TOP ARTISTS · NEW FINDS · PEAK HOURS · STREAKS · GENRES · MINUTES · TOP ARTISTS ·</div><div>SONGS · ALBUMS · YOUR LIBRARY · A CARD TO SHARE · SONGS · ALBUMS · YOUR LIBRARY ·</div></div>
+<section class=tour data-pin style="--n:{len(TOUR)};--acc:{acc[1]}" aria-label="What's in a recap"><div class=stick>
+<div class=steps>{tour}</div>
+<div class=phone><div class=screen><iframe src="demo/{SEEDS[2]}/" title="Demo recap" loading=lazy tabindex=-1></iframe></div><button class="btn alt shuffle">↻ Another design</button></div>
+<div class=bar aria-hidden=true>{"<i></i>" * len(TOUR)}</div></div></section>
+<section class=designs data-pin style="--acc:{acc[3]}"><div class=stick><div class="head reveal"><p class=kicker>Generated design</p><h2>Every recap designs itself</h2>
+<p class=sub>Colours, fonts, motion, decorations and the layout of every slide grow from one random number. These are eight of them. Tap a card to watch its whole recap.</p></div>
+<div class=track>{cards}</div></div></section>
+<section style="--acc:{acc[4]}"><div class=wrap><div class=gen>{gen}</div></div></section>
+<section data-p=through style="--acc:{acc[5]}"><div class=wrap><div class=reveal><p class=kicker>Always up to date</p><h2>Every month, every year, and all the ones before</h2>
+<p class=sub>A recap of each month arrives on the 1st of the next one, and the full year on January 1. On first start it also builds every past month and year in your history, back to your very first listen.</p></div>
+<div class=tl aria-hidden=true>{months}</div>
+<div class=modes><div class=reveal><code>REFRESH=both</code><p>The default: every month and every year.</p></div><div class=reveal style="--d:1"><code>REFRESH=monthly</code><p>Just the months.</p></div><div class=reveal style="--d:2"><code>REFRESH=yearly</code><p>Just one big recap a year.</p></div></div></div></section>
+<section style="--acc:{acc[6]}"><div class=wrap><div class=reveal><p class=kicker>Made for phones</p><h2>Built to be watched on a phone</h2></div><div class=feat>{feats}</div></div></section>
+<section style="--acc:{acc[7]}"><div class="wrap private"><div class=reveal><p class=kicker>Private by design</p><h2>Your listening stays home</h2></div>
+<ul>{"".join(f'<li class=reveal style="--d:{i}">{e(x)}</li>' for i, x in enumerate(PRIVATE))}</ul></div></section>
+<section id=install style="--acc:{acc[0]}"><div class=wrap><div class=reveal><p class=kicker>Get yours</p><h2>Up and running in three steps</h2>
+<p class=sub>You need a ListenBrainz or Last.fm account with your listening history. A Navidrome server is optional, but it brings the songs, covers and genres.</p></div>
+<div class=install><div class=reveal><div><h3>Save this as docker-compose.yml</h3><pre><button class=copy>Copy</button><code>{e(COMPOSE)}</code></pre></div></div>
+<div class=reveal><div><h3>Fill in a .env next to it</h3><pre><button class=copy>Copy</button><code>{e(ENV)}</code></pre></div></div>
+<div class=reveal><div><h3>Start it, then open localhost:8080</h3><pre><button class=copy>Copy</button><code>docker compose up -d</code></pre></div></div></div>
+<p class=hosts>The README also has step-by-step guides for Unraid and TrueNAS SCALE.</p>
+<p class=cta><a class="btn main" href="{REPO}#self-host-with-docker">Full setup guide ↗</a><a class="btn alt" href="demo/{SEEDS[0]}/" data-demo>▶ Watch a demo first</a></p></div></section>
+<footer class=wrap>navidrome wrapped is free software (GPL-3.0). Demo recaps use made-up artists and play no music. <a href="{REPO}">Source on GitHub</a></footer>
+<script>{JS % ([str(x) for x in SEEDS], [k for k, _, _ in TOUR])}</script></html>"""
 
 
 def main():
