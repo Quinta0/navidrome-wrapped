@@ -85,6 +85,21 @@ def in_range(c, rng):
     return False
 
 
+def font_face(name, text=""):
+    """Inlined @font-face for a bundled font. Subsets no character of text falls in are left out
+    (most pages never need latin-ext)."""
+    used, out, ax = {ord(c) for c in text}, "", MANIFEST[name]["axes"]
+    w = f"{ax['wght'][0]:g} {ax['wght'][1]:g}" if "wght" in ax else "400"
+    st = f"font-stretch:{ax['wdth'][0]:g}% {ax['wdth'][1]:g}%;" if "wdth" in ax else ""
+    for fl in MANIFEST[name]["files"]:
+        if fl["subset"] != "latin" and not any(in_range(c, fl["range"]) for c in used):
+            continue
+        data = base64.b64encode(open(os.path.join(FONT_DIR, fl["file"]), "rb").read()).decode()
+        out += (f"@font-face{{font-family:'{name}';src:url(data:font/woff2;base64,{data}) format('woff2');"
+                f"font-weight:{w};{st}font-display:block;unicode-range:{fl['range']}}}")
+    return out
+
+
 class Gen:
     """Holds the seeded RNG, the generated CSS, and the theme-level choices every component draws from."""
 
@@ -292,20 +307,8 @@ class Gen:
             f"letter-spacing:{self.f(0, .3)}em;font-weight:{r.choice([400, 600, 800])};font-size:{r.randint(12, 16)}px}}")
 
     def font_css(self, text=""):
-        """@font-face for this design's two fonts, inlined so the page (and the PNG export) work offline.
-        Subsets no character of text falls in are left out (most pages never need latin-ext)."""
-        used, out = {ord(c) for c in text}, ""
-        for name in self.fonts:
-            ax = MANIFEST[name]["axes"]
-            w = f"{ax['wght'][0]:g} {ax['wght'][1]:g}" if "wght" in ax else "400"
-            st = f"font-stretch:{ax['wdth'][0]:g}% {ax['wdth'][1]:g}%;" if "wdth" in ax else ""
-            for fl in MANIFEST[name]["files"]:
-                if fl["subset"] != "latin" and not any(in_range(c, fl["range"]) for c in used):
-                    continue
-                data = base64.b64encode(open(os.path.join(FONT_DIR, fl["file"]), "rb").read()).decode()
-                out += (f"@font-face{{font-family:'{name}';src:url(data:font/woff2;base64,{data}) format('woff2');"
-                        f"font-weight:{w};{st}font-display:block;unicode-range:{fl['range']}}}")
-        return out
+        """@font-face for this design's two fonts, inlined so the page (and the PNG export) work offline."""
+        return "".join(font_face(n, text) for n in self.fonts)
 
     def _card(self):
         r = self.r
@@ -964,3 +967,58 @@ def section(g, i, key, content, media, decor=True):
     np = (f"<figure class=np>{f'<img {img}>' if img else ''}"
           f'<figcaption>♪ {e(m["title"])}<br><em>{e(m["artist"])}</em></figcaption></figure>') if m.get("audio") else ""
     return f'<section class={key} style="--a:{a};--b:{b};{g.layout()}"{attr}>{bg}{deco}<div>{content}</div>{np}</section>'
+
+
+INDEX_CSS = """
+body{margin:0;min-height:100svh;background:#0d0d0f;color:#f3f1ec;font:16px/1.4 system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+main{max-width:960px;margin:0 auto;padding:calc(48px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom))}
+h1,.rc h2{font-family:var(--disp);font-weight:800;letter-spacing:-.03em;line-height:.9;margin:0}
+h1{font-size:clamp(56px,16vw,128px)}
+header p{opacity:.6;margin:.8em 0 2.4em}
+.yr{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:12px;margin-bottom:28px}
+.rc{position:relative;overflow:hidden;container-type:inline-size;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:92px 16px 16px;
+  border-radius:20px;color:var(--fg);text-decoration:none;background:linear-gradient(150deg,var(--a),var(--b));
+  animation:up .6s cubic-bezier(.2,.9,.3,1) calc(var(--i) * 60ms) both;transition:transform .2s}
+.rc:hover{transform:translateY(-3px)}.rc:active{transform:scale(.97)}.rc:focus-visible{outline:3px solid #f3f1ec;outline-offset:3px}
+.rc h2{font-size:min(34px,18cqi);position:relative}.rc small{opacity:.75;position:relative}.rc p{margin:0;position:relative}.rc b{font-size:1.15em}
+.rc img{position:absolute;top:14px;right:14px;width:64px;height:64px;border-radius:50%;object-fit:cover;box-shadow:0 6px 20px #0006}
+.rc i{position:absolute;top:14px;left:14px;font:600 11px system-ui;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;border-radius:99px;
+  background:color-mix(in srgb,var(--fg) 18%,transparent)}
+.rc.big{grid-column:1/-1;min-height:260px;padding:24px}.rc.big h2{font-size:clamp(64px,17vw,150px)}
+.rc.big img{width:min(30%,200px);height:auto;aspect-ratio:1;top:24px;right:24px;border-radius:16px;rotate:4deg}
+.empty{opacity:.7;font-size:18px}
+@keyframes up{from{opacity:0;transform:translateY(24px)}}
+@media (prefers-reduced-motion:reduce){.rc{animation:none;transition:none}}
+"""
+
+
+def index_page(recaps):
+    """The overview at /: one card per recap, in that recap's own colours. recaps: [(slug, meta)], slug '2026' or '2026-11'."""
+    years, n = {}, 0
+    for slug, m in recaps:
+        years.setdefault(slug[:4], []).append((slug, m))
+    body = ""
+    for y in sorted(years, reverse=True):
+        cards = ""
+        for slug, m in sorted(years[y], key=lambda x: (len(x[0]) == 4, x[0]), reverse=True):  # year first, then newest month
+            big, n = len(slug) == 4, n + 1
+            title = y if big else f"{datetime.strptime(slug, '%Y-%m'):%B}"
+            sub = "the whole year" if big else y
+            if m.get("partial"):
+                sub += " so far"
+            stats = (f"<p><b>{m['minutes']:,}</b> minutes</p>" if m.get("minutes") is not None else "")
+            stats += f"<p><small>Top artist</small> {e(m['artist'])}</p>" if m.get("artist") else ""
+            img = f'<img src="{e(slug)}/{e(m["cover"])}" alt="" loading=lazy>' if m.get("cover") else ""
+            badge = "<i>in progress</i>" if m.get("partial") else ""
+            cards += (f'<a class="rc{" big" if big else ""}" href="{e(slug)}/" style="--a:{m.get("a", "#2a2a33")};--b:{m.get("b", "#46465a")};'
+                      f'--fg:{m.get("fg", "#ffffff")};--i:{n}">{img}{badge}<h2>{e(title)}</h2><small>{e(sub)}</small>{stats}</a>')
+        body += f'<section class=yr aria-label="{y}">{cards}</section>'
+    if not recaps:
+        body = "<p class=empty>Your first recap is being built. This page refreshes on its own and lists it when it's ready.</p>"
+    count = f"{len(recaps)} recap{'s' if len(recaps) != 1 else ''}" if recaps else "Nothing here yet"
+    disp = "Funnel Display" if "Funnel Display" in MANIFEST else None  # 17KB, the lightest good display face
+    fonts = font_face(disp, body) if disp else ""
+    return (f'<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">'
+            f'<meta name=theme-color content="#0d0d0f"><title>Wrapped</title>' + ("" if recaps else '<meta http-equiv=refresh content=60>')
+            + f"<style>{fonts}:root{{--disp:{repr(disp) if disp else ''}, system-ui, sans-serif}}{INDEX_CSS}</style>"
+            f"<main><header><h1>Wrapped</h1><p>Your music, recapped · {count}</p></header>{body}</main></html>")

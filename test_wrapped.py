@@ -34,3 +34,17 @@ for i in range(120):  # every roster entry gets drawn somewhere in here; they mu
 nov = render(s, 2026, seed=1, month=11)
 assert "Your November 2026 in music" in nov and "song of the month" in nov and "peak month" not in nov and "data-year=2026-11" in nov
 print("ok")
+# overview: year card first, months newest first, recaps without meta.json still listed
+import json, os, tempfile
+from wrapped import build_index
+site = tempfile.mkdtemp()
+for slug, meta in (("2026", {"minutes": 34011, "artist": "A&B", "partial": True}), ("2026-10", None), ("2026-11", {"minutes": 900})):
+    os.makedirs(f"{site}/{slug}")
+    open(f"{site}/{slug}/index.html", "w").write("x")
+    if meta:
+        json.dump(meta, open(f"{site}/{slug}/meta.json", "w"))
+build_index(site)
+idx = open(f"{site}/index.html").read()
+assert idx.index('href="2026/"') < idx.index('href="2026-11/"') < idx.index('href="2026-10/"'), idx
+assert "34,011" in idx and "A&amp;B" in idx and "in progress" in idx and "3 recaps" in idx
+print("index ok")

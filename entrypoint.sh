@@ -6,21 +6,14 @@
 # Each recap goes to /data/site/2026 or /data/site/2026-11; /data/site/index.html lists them.
 mode=${REFRESH:-both}
 mkdir -p /data/site
+python /app/wrapped.py --index /data/site  # so / shows "being built" during the first build
 
 build() {  # build YEAR [MONTH], retrying every 15 minutes until it works
   dir=/data/site/$1${2:+-$(printf %02d "$2")}
   until python /app/wrapped.py --year "$1" ${2:+--month "$2"} --out "$dir"; do
     echo "generation failed, retrying in 15 minutes"; sleep 900
   done
-  python -c '
-import datetime as dt, html, os
-d = "/data/site"
-names = sorted((x for x in os.listdir(d) if os.path.isfile(f"{d}/{x}/index.html")), reverse=True)
-label = lambda x: dt.datetime.strptime(x, "%Y-%m").strftime("%B %Y") if "-" in x else f"{x}, the whole year"
-open(f"{d}/index.html", "w").write(
-    "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Wrapped</title>"
-    "<style>body{font:18px/1.6 system-ui;max-width:30em;margin:2em auto;padding:0 16px}</style><h1>Wrapped</h1>"
-    + "".join(f"<p><a href=\"{x}/\">{html.escape(label(x))}</a>" for x in names))'
+  python /app/wrapped.py --index /data/site
 }
 
 (

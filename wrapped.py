@@ -13,7 +13,7 @@ import argparse, base64, hashlib, json, os, secrets, sys, time, urllib.parse, ur
 from collections import Counter
 from datetime import datetime, timedelta
 
-from design import render
+from design import Gen, index_page, render
 
 UA = "music-wrapped/1.0"
 DEFAULT_SECS = 210  # fallback track length when no source knows it
@@ -219,13 +219,29 @@ def compute(listens, library, prior=frozenset()):
     }
 
 
+def build_index(site):
+    """site/index.html: a card for every site/<period>/ that has a page, from the meta.json written next to it."""
+    recaps = []
+    for x in os.listdir(site):
+        if os.path.isfile(os.path.join(site, x, "index.html")):
+            try:
+                recaps.append((x, json.load(open(os.path.join(site, x, "meta.json")))))
+            except (OSError, ValueError):  # recaps built before meta.json existed still get a plain card
+                recaps.append((x, {}))
+    with open(os.path.join(site, "index.html"), "w") as f:
+        f.write(index_page(recaps))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, default=int(os.environ.get("YEAR") or datetime.now().year))
     ap.add_argument("--month", type=int, choices=range(1, 13), help="recap just this month instead of the whole year")
     ap.add_argument("--out", default="wrapped", help="output folder")
+    ap.add_argument("--index", metavar="SITE", help="only rebuild SITE/index.html, the overview of the recaps in SITE/*/")
     ap.add_argument("--seed", type=int, default=os.environ.get("THEME_SEED") or None, help="reuse a previous design")
     a = ap.parse_args()
+    if a.index:
+        return build_index(a.index)
     first = datetime(a.year, a.month or 1, 1)
     after = datetime(a.year + (a.month or 12) // 12, (a.month or 12) % 12 + 1, 1)
     start, end = int(first.timestamp()), int(after.timestamp()) - 1
@@ -261,6 +277,11 @@ def main():
     seed = int(a.seed) if a.seed is not None else secrets.randbits(64)
     with open(os.path.join(a.out, "index.html"), "w") as f:
         f.write(render(stats, a.year, media, seed, a.month))
+    a_col, b_col = (g := Gen(seed)).palette[0]
+    top = lambda k: stats[k][0][0] if stats[k] else None
+    json.dump({"minutes": stats["minutes"], "plays": stats["plays"], "artist": top("artists"), "a": a_col, "b": b_col, "fg": g.fg,
+               "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed},
+              open(os.path.join(a.out, "meta.json"), "w"))
     print(f"{len(listens)} listens -> {a.out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
 
 
