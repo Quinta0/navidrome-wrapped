@@ -1,6 +1,6 @@
 """Static server for /data/site: byte ranges (iOS Safari won't play audio without them, seeking needs them),
 cached media, revalidated pages. ponytail: stdlib server, fine for a personal recap; put a reverse proxy in front for TLS."""
-import functools, http.server, io, os, re
+import functools, http.server, io, os, re, sys
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -22,18 +22,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Range", f"bytes */{size}")
             self.end_headers()
             return None
-        with open(path, "rb") as f:
-            f.seek(start)
+        f = open(path, "rb")
+        f.seek(start)
+        if end < size - 1:  # a bounded slice; open-ended ranges (what browsers send for audio) stream from the file
             body = f.read(end - start + 1)
+            f.close()
+            f = io.BytesIO(body)
         self.send_response(206)
         self.send_header("Content-Type", self.guess_type(path))
         self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(end - start + 1))
         self.end_headers()
-        return io.BytesIO(body)
+        return f
+
+
+class Server(http.server.ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        # browsers drop audio requests once they've buffered enough: normal, not worth a traceback in the logs
+        if not isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+            super().handle_error(request, client_address)
 
 
 if __name__ == "__main__":
     root = os.environ.get("SITE", "/data/site")
-    http.server.ThreadingHTTPServer(("", int(os.environ.get("PORT", 8080))),
-                                    functools.partial(Handler, directory=root)).serve_forever()
+    Server(("", int(os.environ.get("PORT", 8080))), functools.partial(Handler, directory=root)).serve_forever()
