@@ -4,7 +4,7 @@ Every render grows its own design from a seed: palette, typography, a motion voc
 (generated @keyframes), generated SVG decorations, and for every slide which component
 variant shows each piece of data and how it's laid out. Same seed -> same design.
 """
-import base64, colorsys, html, json, math, os, random
+import base64, colorsys, html, json, math, os, random, re, urllib.parse
 from datetime import datetime
 
 e = lambda s: html.escape(str(s))
@@ -593,7 +593,7 @@ class Gen:
                                                  for i, (x, l) in enumerate(zip(values, labels))) + "</div>"
         return self.anim(f'<div role=img aria-label="{e(", ".join(f"{l}: {x}" for x, l in zip(values, labels) if l))}">{inner}</div>', t)
 
-    def decor(self):
+    def decor(self, b):
         r, k = self.r, self.r.choice(self.decor_v)
         op = lambda: self.f(.06, .12)
         if k == "blob":
@@ -679,8 +679,14 @@ class Gen:
             ang, gap = r.randint(0, 180), r.uniform(3, 8)
             body = (f'<g transform="rotate({ang} 50 50)" stroke="var(--fg)" stroke-width="{self.f(.15, .4)}" opacity="{self.f(.1, .2)}">'
                     + "".join(f'<path d="M-50,{y:.1f}H150"/>' for y in [i * gap - 50 for i in range(int(200 / gap))]) + "</g>")
-        return (f'<svg class=decor viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden=true '
-                f'style="animation:{self.ambient()}">{body}</svg>')
+        # an <img>, not inline SVG: every browser rasterizes an image once and then just moves it, while Firefox
+        # redraws animated inline SVG every frame (hundreds of shapes for halftone/confetti: the stutter on phones)
+        body = re.sub(r'(\s[\w-]+)=([^"\s>]+)', r'\1="\2"', body)  # images are parsed as XML: quote every attribute
+        body = body.replace("var(--fg)", self.fg).replace("var(--b)", b).replace('style="font-family:var(--head)"', 'font-family="serif"')
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">{body}</svg>'
+        amb = self.ambient()
+        return (f'<img class="decor{" spin" if "linear" in amb else ""}" alt="" src="data:image/svg+xml,{urllib.parse.quote(svg)}" '
+                f'style="animation:{amb}">')
 
     def layout(self):
         return f"--al:{self.r.choice(self.aligns)};--va:{self.r.choice(self.valigns)}"
@@ -695,7 +701,7 @@ section{background:var(--a)}section::before{content:"";position:absolute;inset:-
 .bg{position:absolute;left:-10%;top:-10%;width:30%;height:30%;transform:scale(4);transform-origin:0 0;object-fit:cover;filter:blur(10px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
 .in .bg{opacity:.9}
 section:not(.in),section:not(.in) *,section:not(.in)::before{animation-play-state:paused!important}
-.decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.decor.spin{inset:-25%;width:150%;height:150%}  /* spinning: no bare corners */
 section>div{position:relative;max-width:640px;width:100%;text-align:var(--al)}
 .a{opacity:0}.in .a{animation:var(--m) var(--d) var(--e) var(--t) both}
 h1,.big{font-size:max(24px,calc(clamp(40px,10vw,88px) * var(--hk,1)));margin:.1em 0}.fit *{animation:none!important}
@@ -997,7 +1003,7 @@ def section(g, i, key, content, media, decor=True):
             + (f' data-cover="{e(m["cover"])}"' if m.get("cover") else "")) if m.get("audio") else ""
     img = f'src="{e(m["cover"])}" alt=""' if m.get("cover") else ""
     bg = f"<img class=bg {img}>" if img else ""
-    deco = "".join(g.decor() for _ in range(g.r.choice([1, 1, 2]))) if decor else ""
+    deco = "".join(g.decor(b) for _ in range(g.r.choice([1, 1, 2]))) if decor else ""
     np = (f"<figure class=np>{f'<img {img}>' if img else ''}"
           f'<figcaption>♪ {e(m["title"])}<br><em>{e(m["artist"])}</em></figcaption></figure>') if m.get("audio") else ""
     return f'<section class={key} style="--a:{a};--b:{b};{g.layout()}"{attr}>{bg}{deco}<div>{content}</div>{np}</section>'

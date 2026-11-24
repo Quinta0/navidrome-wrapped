@@ -75,3 +75,11 @@ wrapped.history = lambda *a: calls.append(a) or []
 wrapped.backfill(lambda k: None, site, "monthly", [], None)  # all built or known empty: no history fetch at all
 assert not calls, calls
 print("backfill ok")
+# decorations are SVG images: they must be valid XML or the browser silently shows nothing
+import re as _re, urllib.parse, xml.etree.ElementTree as ET
+n = 0
+for i in range(60):
+    for uri in _re.findall(r'class="decor[^"]*" alt="" src="data:image/svg\+xml,([^"]+)"', render(s, 2026, seed=i)):
+        ET.fromstring(urllib.parse.unquote(uri)); n += 1
+assert n > 60, n
+print("decor ok")
