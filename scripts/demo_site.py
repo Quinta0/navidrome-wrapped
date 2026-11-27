@@ -32,9 +32,19 @@ def demo_stats():
                         "secs": r.randint(150, 290)})
     listens.sort(key=lambda l: l["ts"])
     library = [{"id": f"{i}-{j}", "artist": a, "title": t, "duration": 220, "genre": GENRES[i % len(GENRES)],
-                "playCount": r.randint(0, 60), "starred": "x" if r.random() < .2 else None}
+                "playCount": r.randint(0, 60), "starred": "x" if r.random() < .2 else None,
+                "year": 1968 + (i * 7 + j * 3) % 56, "suffix": "flac" if r.random() < .7 else "mp3", "bitRate": r.choice([320, 880, 1011, 1411])}
                for i, a in enumerate(ARTISTS) for j, t in enumerate(TITLES)]
-    return compute(listens, library, prior={ARTISTS[0].lower(), ARTISTS[2].lower()})
+    # one binge-and-forget song, a song on repeat one night, a long night session
+    listens += [{"ts": int(t0 + (60 + d) * 86400 + 20 * 3600), "artist": "Ilse Varga", "title": "Fever Season", "album": "Fever Season", "secs": 230}
+                for d in (0, 0, 1, 2, 2, 3, 5, 6)]
+    night = t0 + 140 * 86400 + 22 * 3600
+    listens += [{"ts": int(night + k * 240), "artist": a, "title": t, "album": "", "secs": 230}
+                for k, (a, t) in enumerate([(ARTISTS[1], "Undertow")] * 11 + [(ARTISTS[k % len(ARTISTS)], TITLES[k % len(TITLES)]) for k in range(70)])]
+    listens.sort(key=lambda l: l["ts"])
+    last = {ARTISTS[0].lower(): t0 - 86400, ARTISTS[2].lower(): t0 - 86400, ARTISTS[5].lower(): t0 - 800 * 86400}
+    prev = {a.lower(): [a, n] for a, n in zip(ARTISTS, [900, 120, 500, 60, 400, 10, 300, 20, 30, 200, 15, 5])}
+    return compute(listens, library, last, prev, int(t0))
 
 
 def card(seed, s, k):

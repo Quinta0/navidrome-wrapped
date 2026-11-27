@@ -12,7 +12,7 @@ assert len(listens) == 2, listens
 assert longest_streak([date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 4)]) == 2
 
 lib = [{"id": "s1", "artist": "B", "title": "Other", "duration": 100, "genre": "Rock;Pop", "playCount": 3, "starred": "x"}]
-s = compute(listens, lib, prior={"a"})
+s = compute(listens, lib, last={"a": 0})
 assert s["plays"] == 2 and s["minutes"] == 5  # 200s + 100s from navidrome
 assert dict(s["genres"]) == {"Rock": 1, "Pop": 1}
 assert s["streak"] == 2 and s["lib_starred"] == 1
@@ -34,6 +34,34 @@ for i in range(120):  # every roster entry gets drawn somewhere in here; they mu
 nov = render(s, 2026, seed=1, month=11)
 assert "Your November 2026 in music" in nov and "song of the month" in nov and "peak month" not in nov and "data-year=2026-11" in nov
 print("ok")
+# order-based and history-based slides
+from wrapped import past, prev_start, sequence
+t0 = int(datetime(2026, 5, 1, 21).timestamp())
+seq = [{"ts": t0 + i * 200, "artist": a, "title": t, "album": "", "secs": 200}
+       for i, (a, t) in enumerate([("A", "x")] * 4 + [("B", "y"), ("C", "z")] * 3)]
+seq += [{"ts": t0 + 86400 * d, "artist": "F", "title": "fling", "album": "", "secs": 200} for d in (2, 2.1, 3, 4, 5)]
+seq += [{"ts": t0 + 86400 * 30, "artist": "Old", "title": "o", "album": "", "secs": 200}]
+for l in seq:
+    l["when"] = datetime.fromtimestamp(l["ts"])
+q = sequence(seq)
+assert q["loop"]["n"] == 4 and q["loop"]["title"] == "x"
+assert q["session"]["plays"] == 10 and q["session"]["path"] == ["A", "B", "C"], q["session"]
+assert q["segue"] == (("B", "C"), 3), q["segue"]
+assert q["fling"]["title"] == "fling" and q["fling"]["n"] == 5
+hist = [{"ts": t0 - 400 * 86400, "artist": "Old"}, {"ts": t0 - 20 * 86400, "artist": "B"}, {"ts": t0 - 19 * 86400, "artist": "Gone"}]
+p = past(hist, prev_start(2026, 5))
+assert p["last"]["old"] == t0 - 400 * 86400 and p["prev"] == {"b": ["B", 1], "gone": ["Gone", 1]}, p
+assert prev_start(2026, 1) == int(datetime(2025, 12, 1).timestamp()) and prev_start(2026) == int(datetime(2025, 1, 1).timestamp())
+lib2 = [{"id": "x", "artist": "A", "title": "x", "year": 1984, "suffix": "flac", "bitRate": 900},
+        {"id": "y", "artist": "B", "title": "y", "year": 2001, "suffix": "mp3", "bitRate": 320}]
+s2 = compute([dict(l) for l in seq], lib2, p["last"], p["prev"], int(datetime(2026, 5, 1).timestamp()))
+assert [a for a, *_ in s2["comebacks"]] == ["Old"] and s2["rising"][0][0] == "B" and s2["fading"] == [("Gone", 1, 0)]
+assert s2["median_year"] == 1984 and s2["lossless"] == 4 / 7 and s2["bitrate"] == 651, (s2["median_year"], s2["lossless"], s2["bitrate"])
+assert abs(s2["loyalty"] - 1) < 1e-9  # 5 artists: all of them are the top 5
+page = render(s2, 2026, seed=3, month=5)
+for txt in ("On a loop", "rabbit hole", "favourite segue", "The fling", "The comeback", "Since last month", "Audiophile check", "Loyalty score", "class=guess"):
+    assert txt in page, txt
+print("new slides ok")
 # overview: year card first, months newest first, recaps without meta.json still listed
 import json, os, tempfile
 from wrapped import build_index

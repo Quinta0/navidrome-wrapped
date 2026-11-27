@@ -561,6 +561,11 @@ class Gen:
             return self.anim(f'<div class=tl><div>{row}</div><div aria-hidden=true>{row}</div></div>', st(0))
         return "<ol class=rl>" + "".join(self.anim(f"<span>{lab}</span><b>{c}</b>", st(i), tag="li") for i, (lab, c) in enumerate(items)) + "</ol>"
 
+    def guess(self, options, answer, t):
+        """Tap-to-guess: one button per option, the right one lights up and the deck moves on."""
+        btns = "".join(f'<button{" data-ok=1" if o == answer else ""}>{e(o)}</button>' for o in options)
+        return self.anim(f'<div class=guess>{btns}</div><p class=gres>It was <b>{e(answer)}</b></p>', t)
+
     def chart(self, values, labels, t):
         v, mx, n = self.r.choice(self.chart_v), max(values) or 1, len(values)
         o = self.order(n)
@@ -766,6 +771,12 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .radial{width:min(100%,340px,32svh);display:block;margin:1em auto}.radial line{stroke:var(--fg);stroke-linecap:var(--cap)}
 .radial text{fill:var(--fg);font-size:9px;text-anchor:middle;dominant-baseline:middle;opacity:.8}
 .draw{stroke-dasharray:100;stroke-dashoffset:0}.in .draw{animation:draw 1.4s var(--e) calc(var(--t) + var(--o,0) * 40ms) both}@keyframes draw{from{stroke-dashoffset:100}}
+/* guess */
+.guess{display:grid;gap:10px;margin:1.2em 0 .6em;text-align:left}
+.guess button{color:var(--fg);background:transparent;border:2px solid var(--fg);text-align:inherit;transition:all .35s}
+.guess.done button{pointer-events:none}.guess.done [data-ok]{background:var(--fg);color:var(--a);transform:scale(1.04)}
+.guess.done button:not([data-ok]){opacity:.35}.guess.done .picked:not([data-ok]){text-decoration:line-through;opacity:.6}
+.gres{opacity:0;transition:opacity .5s .3s}.guess.done+.gres{opacity:1}
 /* chrome */
 .np{position:absolute;left:calc(24px + env(safe-area-inset-left));right:calc(24px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));margin:0;display:flex;gap:12px;align-items:center;font-size:14px;opacity:0;transform:translateY(20px);transition:all .8s .8s}
 .in .np{opacity:1;transform:none}.np img{width:52px;height:52px;border-radius:var(--np-r);box-shadow:0 4px 20px #0006;animation:var(--np-anim) 8s linear infinite paused}
@@ -851,6 +862,9 @@ const io=new IntersectionObserver(es=>es.forEach(en=>{
   active=en.target;if(settled)enter(active);
 }),{threshold:.55});
 secs.forEach(s=>io.observe(s));
+// guess slides: tap an answer, the right one lights up, then on to the reveal
+document.querySelectorAll('.guess button').forEach(b=>b.onclick=()=>{const g=b.parentNode;if(g.classList.contains('done'))return;
+  b.classList.add('picked');g.classList.add('done');g.nextElementSibling.firstChild.textContent=b.dataset.ok?'Nailed it: ':'Nope. It was ';setTimeout(()=>go(1),1800)});
 function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active);wake()}
 mute.onclick=()=>setSound(!sound);
 // loading screen: everything a slide needs is ready before the first one shows, so nothing pops in or hitches mid-animation
@@ -917,6 +931,12 @@ document.addEventListener('visibilitychange',()=>{
 """
 
 
+def gap(days):
+    """'2 years, 3 months' / '14 months'-ish, for comebacks."""
+    y, m = divmod(round(days / 30.44), 12)
+    return ", ".join(p for p in (f"{y} year{'s' * (y != 1)}" if y else "", f"{m} month{'s' * (m != 1)}" if m else "") if p) or "a while"
+
+
 def render(s, year, media=None, seed=None, month=None):
     """month=None: the year's recap; month=1..12: just that month."""
     media = media or {}
@@ -936,6 +956,13 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.number(s["minutes"], t),
             lambda t: g.text("minutes listened", t),
             lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub")]),
+    ]
+    if len(s["artists"]) >= 4:
+        opts = [a for a, _ in s["artists"][:4]]
+        g.r.shuffle(opts)
+        slides.append(("guess", "Quick question", [
+            lambda t: g.headline("Who was your top artist?", t), lambda t: g.guess(opts, a1[0], t)]))
+    slides += [
         ("artist", "Your top artist", [
             lambda t: g.headline(a1[0], t), lambda t: g.text(f"{a1[1]} plays", t),
             lambda t: g.ranks([(e(a), n) for a, n in s["artists"][1:10]], t)]),
@@ -943,6 +970,11 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.headline(t1[0][0], t), lambda t: g.text(f"{e(t1[0][1])} · {t1[1]} plays", t),
             lambda t: g.ranks([(artist_item(k), n) for k, n in s["tracks"][1:10]], t)]),
     ]
+    top5 = s["artists"][:5]
+    persona = ("Ride or die" if s["loyalty"] >= .6 else "Loyal, with a wandering ear" if s["loyalty"] >= .35 else "Free spirit")
+    slides.append(("loyalty", "Loyalty score", [
+        lambda t: g.headline(f"{s['loyalty'] * 100:.0f}%", t), lambda t: g.text(f"of your plays went to your top {len(top5)} artists", t),
+        lambda t: g.text(f"Verdict: <b>{persona}</b>", t, "sub"), lambda t: g.ranks([(e(a), n) for a, n in top5], t)]))
     if s["albums"]:
         top_album = s["albums"][0]
         slides.append(("album", f"Your album of the {unit}", [
@@ -956,9 +988,27 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.number(s["n_new"], t, s["n_new"] / max(1, s["n_artists"])), lambda t: g.text("artists discovered", t),
             lambda t: g.text(f"Your biggest find: <b>{e(s['new'][0][0])}</b>", t, "sub"),
             lambda t: g.ranks([(e(a), n) for a, n in s["new"][:8]], t)]))
+    if s["comebacks"]:
+        cb = s["comebacks"][0]
+        slides.append(("comeback", "The comeback", [
+            lambda t: g.headline(cb[0], t), lambda t: g.text(f"back after {gap(cb[2])} away · {cb[1]} plays", t),
+            lambda t: g.ranks([(f"{e(a)} <em>{gap(d)}</em>", n) for a, n, d in s["comebacks"][1:]], t)]))
+    if s["rising"] or s["fading"]:
+        delta = lambda rows: [(f"{e(a)} <em>{p} → {c}</em>", abs(c - p)) for a, p, c in rows]
+        slides.append(("rising", f"Since last {unit}", (
+            [lambda t: g.text("<b>↑ On the rise</b>", t), lambda t: g.ranks(delta(s["rising"]), t)] if s["rising"] else [])
+            + ([lambda t: g.text("<b>↓ Cooling off</b>", t), lambda t: g.ranks(delta(s["fading"]), t)] if s["fading"] else [])))
     if s["genres"]:
         slides.append(("genre", "Your top genre", [
             lambda t: g.headline(s["genres"][0][0], t), lambda t: g.ranks([(e(x), n) for x, n in s["genres"][1:]], t)]))
+    if len(s["years"]) >= 20:
+        lo, hi = s["years"][0] // 10, s["years"][-1] // 10
+        lo = max(lo, hi - 9)  # ten decades at most; older outliers fold into the first
+        dec = [sum(1 for y in s["years"] if max(lo, y // 10) == d) for d in range(lo, hi + 1)]
+        slides.append(("decade", "Time machine", [
+            lambda t: g.headline(str(s["median_year"]), t), lambda t: g.text("is the median year of the music you played", t),
+            lambda t: g.chart(dec, [f"{d * 10 % 100:02d}s" for d in range(lo, hi + 1)], t),
+            lambda t: g.text(f"Oldest: {s['years'][0]} · newest: {s['years'][-1]}", t, "sub")]))
     if not month:
         slides.append(("month", "Your peak month", [
             lambda t: g.headline(f"{datetime(year, s['peak_month'], 1):%B}", t), lambda t: g.chart(s["months"], "JFMAMJJASOND", t)]))
@@ -971,6 +1021,34 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.number(s["streak"], t, s["streak"] / (31 if month else 365)), lambda t: g.text("days in a row with music", t)]
          + ([lambda t: g.text(f"Biggest day: {s['top_day'][0]:%d %B} with {s['top_day'][1]} plays", t, "sub")] if s["top_day"] else [])),
     ]
+    if s["session"]:
+        se, path = s["session"], s["session"]["path"]
+        hrs, mins = divmod(round((se["end"] - se["start"]).total_seconds() / 60), 60)
+        route = path if len(path) <= 5 else path[:3] + ["…"] + path[-2:]
+        slides.append(("session", "Down the rabbit hole", [
+            lambda t: g.headline(f"{hrs}h {mins:02d}m", t),
+            lambda t: g.text(f"non-stop on {se['start']:%A %d %B}, {se['start']:%H:%M} to {se['end']:%H:%M}", t),
+            lambda t: g.text(" → ".join(f"<b>{e(a)}</b>" if a != "…" else a for a in route), t),
+            lambda t: g.text(f"{se['plays']} songs · {len(path)} artists", t, "sub")]))
+    if s["loop"]:
+        lp = s["loop"]
+        slides.append(("loop", "On a loop", [
+            lambda t: g.number(lp["n"], t), lambda t: g.text("times in a row", t),
+            lambda t: g.text(f"<b>{e(lp['title'])}</b> · {e(lp['artist'])}, on {lp['when']:%d %B}", t, "sub")]))
+    if s["segue"]:
+        (sa, sb), sn = s["segue"]
+        slides.append(("segue", "Your favourite segue", [
+            lambda t: g.headline(f"{sa} → {sb}", t), lambda t: g.text(f"{sn} times you went straight from one to the other", t)]))
+    if s["fling"]:
+        fl = s["fling"]
+        slides.append(("fling", "The fling", [
+            lambda t: g.headline(fl["title"], t), lambda t: g.text(f"{e(fl['artist'])} · {fl['n']} plays from {fl['start']:%d %b} to {fl['end']:%d %b}", t),
+            lambda t: g.text("…and then never again", t, "sub")]))
+    if s["formats"] and s["formats"][0][0] != "?":
+        slides.append(("audio", "Audiophile check", [
+            lambda t: g.headline(f"{s['lossless'] * 100:.0f}%", t), lambda t: g.text("of your plays were lossless", t),
+            lambda t: g.ranks([(e(f.upper()), n) for f, n in s["formats"]], t)]
+            + ([lambda t: g.text(f"Average bitrate: {s['bitrate']:,} kbps", t, "sub")] if s["bitrate"] else [])))
     if s["lib_songs"]:
         slides.append(("library", "Your Navidrome library", [
             lambda t: g.number(s["lib_songs"], t, lib_frac), lambda t: g.text("songs", t),

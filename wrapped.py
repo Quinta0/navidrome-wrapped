@@ -100,15 +100,34 @@ def navidrome(nd):
         off += 500
 
 
-def prior_artists(name, listens_before):
-    """Artists heard before the year. Cached: the past doesn't change (delete cache/ after big imports)."""
-    path = os.path.join(CACHE, f"history-{name}.json")
+def past(listens_before, prev_start):
+    """What came before a period: {"last": {artist key: last listen ts}, "prev": {artist key: [name, plays since prev_start]}}."""
+    last, prev = {}, {}
+    for l in listens_before:
+        k = key(l["artist"])[0]
+        last[k] = max(last.get(k, 0), l["ts"])
+        if l["ts"] >= prev_start and l["artist"]:
+            prev.setdefault(k, [l["artist"], 0])[1] += 1
+    return {"last": last, "prev": prev}
+
+
+def past_cached(name, listens_before, prev_start):
+    """past(), cached: the past doesn't change (delete cache/ after big imports)."""
+    path = os.path.join(CACHE, f"past-{name}.json")
     if os.path.exists(path):
-        return set(json.load(open(path)))
-    artists = sorted({key(l["artist"])[0] for l in listens_before})
+        return json.load(open(path))
+    p = past(listens_before, prev_start)
     os.makedirs(CACHE, exist_ok=True)
-    json.dump(artists, open(path, "w"))
-    return set(artists)
+    json.dump(p, open(path, "w"))
+    return p
+
+
+def merge_past(a, b):
+    """Two sources' past() in one (cross-scrobbles may double the previous period's counts; fine for a ranking)."""
+    last = {k: max(a["last"].get(k, 0), b["last"].get(k, 0)) for k in {*a["last"], *b["last"]}}
+    prev = {k: [(a["prev"].get(k) or b["prev"][k])[0], a["prev"].get(k, [0, 0])[1] + b["prev"].get(k, [0, 0])[1]]
+            for k in {*a["prev"], *b["prev"]}}
+    return {"last": last, "prev": prev}
 
 
 def fetch_media(nd, songs, out):
@@ -166,7 +185,59 @@ def genres_of(song):
     return [g.strip() for g in ((song or {}).get("genre") or "").split(";") if g.strip()]
 
 
-def compute(listens, library, prior=frozenset()):
+LOSSLESS = {"flac", "wav", "aiff", "aif", "ape", "wv", "dsf", "dff", "alac"}
+GAP = 30 * 60  # silence longer than this (after a song ends) starts a new session
+
+
+def sequence(listens):
+    """Stats that only the order of listens gives: loop, longest session, segue, fling. listens sorted by ts."""
+    out = {"loop": None, "session": None, "segue": None, "fling": None}
+    if not listens:
+        return out
+    k = lambda l: key(l["artist"], l["title"])
+    near = lambda a, b: b["ts"] - a["ts"] <= GAP + (a["secs"] or DEFAULT_SECS)
+    best, run = (0, None), 1
+    for i in range(1, len(listens) + 1):  # longest run of one song back to back, in one sitting
+        if i < len(listens) and k(listens[i]) == k(listens[i - 1]) and near(listens[i - 1], listens[i]):
+            run += 1
+            continue
+        if run > best[0]:
+            best = (run, listens[i - 1])
+        run = 1
+    if best[0] >= 3:
+        l = best[1]
+        out["loop"] = {"title": l["title"], "artist": l["artist"], "n": best[0], "when": l["when"]}
+    sessions, cur, segues = [], [listens[0]], Counter()
+    for a, b in zip(listens, listens[1:]):
+        if not near(a, b):
+            sessions.append(cur)
+            cur = []
+        elif a["artist"] and b["artist"] and key(a["artist"]) != key(b["artist"]):
+            segues[(a["artist"], b["artist"])] += 1
+        cur.append(b)
+    sessions.append(cur)
+    ses = max(sessions, key=lambda x: x[-1]["ts"] - x[0]["ts"])
+    path = list(dict.fromkeys(l["artist"] for l in ses if l["artist"]))
+    if len(ses) >= 5:
+        out["session"] = {"start": ses[0]["when"], "end": datetime.fromtimestamp(ses[-1]["ts"] + (ses[-1]["secs"] or DEFAULT_SECS)),
+                          "plays": len(ses), "path": path, "ids": {id(l) for l in ses}}
+    if segues and segues.most_common(1)[0][1] >= 3:
+        out["segue"] = segues.most_common(1)[0]
+    end, plays = listens[-1]["ts"], {}
+    for l in listens:
+        plays.setdefault(k(l), []).append(l)
+    # a fling: at least 5 plays all inside one week, then nothing for the last 2+ weeks of the period
+    flings = [p for p in plays.values() if len(p) >= 5 and p[-1]["ts"] - p[0]["ts"] <= 7 * 86400 and end - p[-1]["ts"] >= 14 * 86400]
+    if flings:
+        p = max(flings, key=len)
+        out["fling"] = {"title": p[0]["title"], "artist": p[0]["artist"], "n": len(p), "start": p[0]["when"], "end": p[-1]["when"]}
+    return out
+
+
+def compute(listens, library, last=None, prev=None, start=None):
+    """last: {artist key: last listen ts before the period}, prev: {artist key: [name, plays]} in the previous period
+    (both from past()), start: the period's first second (for comebacks)."""
+    last, prev = last or {}, prev or {}
     lib = {key(s.get("artist"), s.get("title")): s for s in library}
     secs, genres = 0, Counter()
     for l in listens:
@@ -178,7 +249,21 @@ def compute(listens, library, prior=frozenset()):
     artists = Counter(l["artist"] for l in listens if l["artist"])
     tracks = Counter((l["title"], l["artist"]) for l in listens if l["title"])
     albums = Counter((l["album"], l["artist"]) for l in listens if l["album"])
-    new = [(a, n) for a, n in artists.most_common() if key(a)[0] not in prior]
+    new = [(a, n) for a, n in artists.most_common() if key(a)[0] not in last]
+    seq = sequence(listens)
+    first_ts = {}
+    for l in listens:
+        first_ts.setdefault(key(l["artist"])[0], l["ts"])
+    start = start or (listens[0]["ts"] if listens else 0)
+    # comeback: heard before, then over a year of silence before this period
+    back = sorted(((a, n, (first_ts[key(a)[0]] - last[key(a)[0]]) / 86400) for a, n in artists.most_common()
+                   if key(a)[0] in last and start - last[key(a)[0]] >= 365 * 86400), key=lambda x: -x[1])
+    cur = {key(a)[0]: (a, n) for a, n in artists.items()}
+    rising = sorted(((a, prev[k][1], n) for k, (a, n) in cur.items() if k in prev and n > prev[k][1]), key=lambda x: x[1] - x[2])
+    fading = sorted(((nm, p, cur.get(k, (0, 0))[1]) for k, (nm, p) in prev.items() if p > cur.get(k, (0, 0))[1]), key=lambda x: x[2] - x[1])
+    years = sorted(int(l["song"]["year"]) for l in listens if l["song"] and l["song"].get("year"))
+    fmts = Counter((l["song"].get("suffix") or "?").lower() for l in listens if l["song"])
+    rates = [l["song"]["bitRate"] for l in listens if l["song"] and l["song"].get("bitRate")]
     months = [sum(1 for l in listens if l["when"].month == m) for m in range(1, 13)]
     hours = [sum(1 for l in listens if l["when"].hour == h) for h in range(24)]
     top_day = days.most_common(1)[0] if days else None
@@ -204,7 +289,18 @@ def compute(listens, library, prior=frozenset()):
         "hour": pick(lambda l: l["when"].hour == peak_h),
         "streak": pick(lambda l: top_day and l["when"].date() == top_day[0]),
         "library": lib_top[0] if lib_top and lib_top[0].get("playCount") else None,
+        "guess": pick(),
+        "loyalty": pick(lambda l: l["artist"] == top_artist[0]),
+        "comeback": pick(lambda l: back and l["artist"] == back[0][0]),
+        "rising": pick(lambda l: rising and l["artist"] == rising[0][0]),
+        "decade": pick(lambda l: years and (l["song"].get("year") or 0) // 10 == years[len(years) // 2] // 10),
+        "session": pick(lambda l: seq["session"] and id(l) in seq["session"]["ids"]),
+        "loop": pick(lambda l: seq["loop"] and (l["title"], l["artist"]) == (seq["loop"]["title"], seq["loop"]["artist"])),
+        "segue": pick(lambda l: seq["segue"] and l["artist"] == seq["segue"][0][1]),
+        "fling": pick(lambda l: seq["fling"] and (l["title"], l["artist"]) == (seq["fling"]["title"], seq["fling"]["artist"])),
+        "audio": pick(lambda l: (l["song"].get("suffix") or "").lower() in LOSSLESS),
     }
+    top5 = sum(n for _, n in artists.most_common(5))
     return {
         "plays": len(listens), "minutes": round(secs / 60),
         "artists": artists.most_common(10), "tracks": tracks.most_common(10), "albums": albums.most_common(10),
@@ -215,7 +311,12 @@ def compute(listens, library, prior=frozenset()):
         "streak": longest_streak(days), "active_days": len(days), "top_day": top_day,
         "lib_songs": len(library), "lib_starred": sum(1 for s in library if s.get("starred")),
         "lib_top": lib_top, "never_played": sum(1 for s in library if not s.get("playCount")),
-        "songs": songs,
+        "songs": songs, **seq,
+        "loyalty": top5 / len(listens) if listens else 0,
+        "comebacks": back[:6], "rising": rising[:5], "fading": fading[:5],
+        "years": years, "median_year": years[len(years) // 2] if years else None,
+        "formats": fmts.most_common(5), "lossless": sum(n for f, n in fmts.items() if f in LOSSLESS) / max(1, sum(fmts.values())),
+        "bitrate": round(sum(rates) / len(rates)) if rates else None,
     }
 
 
@@ -239,6 +340,11 @@ def period_range(year, month=None):
     return int(first.timestamp()), int(after.timestamp()) - 1
 
 
+def prev_start(year, month=None):
+    """First second of the period before this one (the month or year before)."""
+    return period_range(*((year - (month == 1), (month - 2) % 12 + 1) if month else (year - 1,)))[0]
+
+
 def slug(year, month=None):
     return f"{year}-{month:02d}" if month else str(year)
 
@@ -256,9 +362,9 @@ def history(env, start, end):
 
 
 def build(year, month, listens, prior, library, nd, out, seed=None):
-    """Write one recap (index.html, media/, meta.json) to out."""
-    end = period_range(year, month)[1]
-    stats = compute(listens, library, prior)
+    """Write one recap (index.html, media/, meta.json) to out. prior: past() of the listens before it."""
+    start, end = period_range(year, month)
+    stats = compute(listens, library, prior["last"], prior["prev"], start)
     os.makedirs(out, exist_ok=True)
     media = fetch_media(nd, stats["songs"], out) if nd and listens else {}
     cover = (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
@@ -310,7 +416,7 @@ def backfill(env, site, mode, library, nd, seed=None):
     json.dump({"first": listens[0]["ts"], "empty": [slug(y, m) for y, m, *_ in empty]}, open(path, "w"))
     print(f"backfill: building {len(todo)} past recaps" + (f", skipping {len(empty)} without listens" if empty else ""))
     for y, m, start, inside in todo:
-        prior = {key(l["artist"])[0] for l in listens if l["ts"] < start}
+        prior = past((l for l in listens if l["ts"] < start), prev_start(y, m))
         build(y, m, inside, prior, library, nd, os.path.join(site, slug(y, m)), seed)
         build_index(site)  # each one shows up on the overview as soon as it's done
 
@@ -344,11 +450,11 @@ def main():
         return backfill(env, a.backfill, env("REFRESH") or "both", library, nd, a.seed)
     start, end = period_range(a.year, a.month)
     period = slug(a.year, a.month)
-    prior = set()
-    if env("LB_USER"):
-        prior |= prior_artists(f"lb-{env('LB_USER')}-{period}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start))
+    prior, ps = {"last": {}, "prev": {}}, prev_start(a.year, a.month)
+    if env("LB_USER"):  # listenbrainz pages from start backwards; its max_ts is exclusive
+        prior = merge_past(prior, past_cached(f"lb-{env('LB_USER')}-{period}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start), ps))
     if env("LASTFM_USER") and env("LASTFM_KEY"):
-        prior |= prior_artists(f"lastfm-{env('LASTFM_USER')}-{period}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1))
+        prior = merge_past(prior, past_cached(f"lastfm-{env('LASTFM_USER')}-{period}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1), ps))
     build(a.year, a.month, history(env, start, end), prior, library, nd, a.out, a.seed)
 
 
