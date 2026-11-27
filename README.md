@@ -36,27 +36,16 @@ docker run -d -p 8080:8080 --env-file .env -v ./data:/data ghcr.io/quinta0/navid
 ### Unraid
 
 1. **Settings → Docker**: make sure Docker is enabled.
-2. Open the **Docker** tab and click **Add Container** at the bottom. Leave **Template** empty.
-3. Fill in:
-   - **Name**: `navidrome-wrapped`
-   - **Repository**: `ghcr.io/quinta0/navidrome-wrapped:latest`
-   - **Network Type**: `Bridge`
-4. Switch on **Advanced View** (top right). In **Extra Parameters**, enter `--user 99:100`. This makes the files in appdata belong to `nobody:users`, like the rest of your containers.
-5. Click **Add another Path, Port, Variable, Label or Device** and add a path:
-   - **Config Type** `Path`, **Container Path** `/data`, **Host Path** `/mnt/user/appdata/navidrome-wrapped`
-6. Add a port:
-   - **Config Type** `Port`, **Container Port** `8080`, **Host Port** any free port, for example `8085`
-7. Add one **Variable** per setting from the [configuration table](#configuration). The **Key** is the variable name. For example:
-   - `LB_USER` and/or `LASTFM_USER` + `LASTFM_KEY`
-   - `ND_URL`: your Navidrome's LAN address, for example `http://192.168.1.10:4533`. If Navidrome runs on the same Unraid box, use the Unraid IP and Navidrome's host port.
-   - `ND_USER`, `ND_PASS`: set **Password Mask** to `Yes` for the password.
-8. Create the data folder with the right owner first. Otherwise Docker creates it as root and the container can't write to it. Open the Unraid **Terminal** (`>_` icon, top right) and run:
+2. Open the Unraid **Terminal** (`>_` icon, top right). Fetch the template and create the data folder with the right owner (otherwise Docker creates it as root and the container can't write to it):
    ```sh
+   wget -O /boot/config/plugins/dockerMan/templates-user/my-navidrome-wrapped.xml https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/unraid/navidrome-wrapped.xml
    mkdir -p /mnt/user/appdata/navidrome-wrapped && chown 99:100 /mnt/user/appdata/navidrome-wrapped
    ```
-9. Click **Apply**.
-10. Click the container icon and choose **Logs**. The first build can take several minutes. The current month and year are ready when you see `listens -> /data/site/...` for both. Past months and years follow after that.
-11. Open `http://<unraid-ip>:8085`.
+3. Open the **Docker** tab, click **Add Container** and pick **navidrome-wrapped** under **Template**.
+4. Fill in `LB_USER` and/or `LASTFM_USER` + `LASTFM_KEY`, and optionally the Navidrome fields (`ND_URL` is your Navidrome's LAN address, for example `http://192.168.1.10:4533`; if Navidrome runs on the same Unraid box, use the Unraid IP and Navidrome's host port). The template runs the container as `--user 99:100` and serves it on port `8085`. See the [configuration table](#configuration) for the rest.
+5. Click **Apply**.
+6. Click the container icon and choose **Logs**. The first build can take several minutes. The current month and year are ready when you see `listens -> /data/site/...` for both. Past months and years follow after that.
+7. Open `http://<unraid-ip>:8085`, or click the icon and choose **WebUI**.
 
 ### TrueNAS SCALE (24.10 or later)
 

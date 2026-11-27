@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>navidrome-wrapped</Name>
+  <Repository>ghcr.io/quinta0/navidrome-wrapped:latest</Repository>
+  <Registry>https://github.com/Quinta0/navidrome-wrapped/pkgs/container/navidrome-wrapped</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Quinta0/navidrome-wrapped/issues</Support>
+  <Project>https://github.com/Quinta0/navidrome-wrapped</Project>
+  <Overview>Self-hosted year-in-music recap (like Spotify Wrapped) built from your ListenBrainz and/or Last.fm history and your Navidrome server. Builds a recap per month and per year with a generated design. Before the first start, run: mkdir -p /mnt/user/appdata/navidrome-wrapped &amp;&amp; chown 99:100 /mnt/user/appdata/navidrome-wrapped</Overview>
+  <Category>MediaApp:Music</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/unraid/navidrome-wrapped.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/docs/icon.png</Icon>
+  <ExtraParams>--user 99:100</ExtraParams>
+  <Config Name="WebUI Port" Target="8080" Default="8085" Mode="tcp" Description="Port for the recap page" Type="Port" Display="always" Required="true" Mask="false">8085</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/navidrome-wrapped" Mode="rw" Description="Generated recaps and cache" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/navidrome-wrapped</Config>
+  <Config Name="ListenBrainz user" Target="LB_USER" Default="" Mode="" Description="ListenBrainz username (set this and/or Last.fm)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="ListenBrainz token" Target="LB_TOKEN" Default="" Mode="" Description="ListenBrainz user token (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Last.fm user" Target="LASTFM_USER" Default="" Mode="" Description="Last.fm username" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Last.fm API key" Target="LASTFM_KEY" Default="" Mode="" Description="Last.fm API key (needed with LASTFM_USER)" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Navidrome URL" Target="ND_URL" Default="" Mode="" Description="Navidrome LAN address, e.g. http://192.168.1.10:4533 (optional: enables durations, genres, library stats, audio and covers)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Navidrome user" Target="ND_USER" Default="" Mode="" Description="Navidrome username" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <Config Name="Navidrome password" Target="ND_PASS" Default="" Mode="" Description="Navidrome password" Type="Variable" Display="always" Required="false" Mask="true"/>
+  <Config Name="Refresh" Target="REFRESH" Default="both|monthly|yearly" Mode="" Description="Build a recap per month, per year, or both" Type="Variable" Display="advanced" Required="false" Mask="false">both</Config>
+  <Config Name="Theme seed" Target="THEME_SEED" Default="" Mode="" Description="Keep a design you like (each run logs its seed); empty = new look every run" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>
