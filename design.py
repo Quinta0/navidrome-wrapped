@@ -50,17 +50,17 @@ FONTS = {  # system font stacks (modernfontstacks.com): distinct looks, no downl
     "hand": "'Segoe Print', 'Bradley Hand', Chilanka, TSCu_Comic, casual, cursive",
 }
 BODY_FONTS = ["grotesk", "geometric", "humanist", "rounded", "system", "transitional", "oldstyle"]
-BACKGROUNDS = [  # per-section background from its own --a/--b, and the size the drift animation moves within
+BACKGROUNDS = [  # per-section background from its own --a/--b (--c: a quiet mix, for hard edges), and the size the drift moves within
     ("linear-gradient({ang}deg,var(--a),var(--b),var(--a))", "300% 300%"),
     ("radial-gradient(circle at 30% 30%,var(--b),var(--a) 65%)", "200% 200%"),
     ("radial-gradient(at 15% 20%,var(--b) 0,transparent 50%),radial-gradient(at 85% 75%,var(--b) 0,transparent 45%),var(--a)", "160% 160%"),
     ("conic-gradient(from {ang}deg at 50% 50%,var(--a),var(--b),var(--a))", "220% 220%"),
-    ("linear-gradient({ang}deg,var(--a) 50%,var(--b) 50%)", "250% 250%"),
-    ("repeating-linear-gradient({ang}deg,var(--a) 0 40px,var(--b) 40px 80px)", "200% 200%"),
-    ("repeating-radial-gradient(circle at 20% 80%,var(--a) 0 30px,var(--b) 30px 60px)", "180% 180%"),
-    ("linear-gradient({ang}deg,var(--b) 0 33%,var(--a) 33% 66%,var(--b) 66%)", "250% 250%"),
+    ("linear-gradient({ang}deg,var(--a) 50%,var(--c) 50%)", "250% 250%"),
+    ("repeating-linear-gradient({ang}deg,var(--a) 0 40px,var(--c) 40px 80px)", "200% 200%"),
+    ("radial-gradient(60% 40% at 20% 15%,var(--b),transparent),radial-gradient(50% 50% at 90% 60%,var(--c),transparent),radial-gradient(70% 40% at 30% 100%,var(--b),transparent),var(--a)", "150% 150%"),
+    ("linear-gradient({ang}deg,var(--c) 0 33%,var(--a) 33% 66%,var(--c) 66%)", "250% 250%"),
     ("radial-gradient(ellipse at 50% 120%,var(--b),transparent 60%),linear-gradient(var(--a),var(--a))", "140% 140%"),
-    ("repeating-conic-gradient(from {ang}deg at 50% 50%,var(--a) 0 15deg,var(--b) 15deg 30deg)", "200% 200%"),
+    ("repeating-conic-gradient(from {ang}deg at 50% 50%,var(--a) 0 15deg,var(--c) 15deg 30deg)", "200% 200%"),
 ]
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 try:  # bundled OFL variable fonts (scripts/fetch_fonts.py); without them we fall back to system stacks
@@ -112,13 +112,12 @@ class Gen:
         self.eases = [self.ease() for _ in range(2)]
         self.vocab = [self.enter() for _ in range(r.randint(3, 5))]  # entrance moves this design "speaks"
         self.letter_kf, self.card_kf = self.enter(.4), self.enter(1.6)
-        self.grow, self.pop = self._from_only("grow"), self._from_only("pop")  # unused since charts wipe in; kept so seeds keep their designs
         self.dur, self.stg = round(r.uniform(.5, 1.3), 2), round(r.uniform(.06, .2), 2)
         self.number_v = r.sample(["count", "odo", "ring", "echo", "ticker"], 3)
         self.head_v = r.sample(["plain", "letters", "mark", "marquee"], r.randint(2, 3))
         self.list_v = r.sample(["list", "podium", "tiles", "cloud", "ticker"], 3)
         self.chart_v = r.sample(["bars", "dots", "line", "radial", "heat"], 3)
-        self.decor_v = r.sample(["blob", "rings", "scatter", "waves", "halftone", "glyph", "lines", "grid", "arcs", "confetti", "stars", "spiral", "contours"], r.randint(2, 3))
+        self.decor_v = r.sample(self.CORNER, 2) + r.sample(self.BAND + self.FULL, r.randint(1, 2))  # a corner piece always fits
         self.aligns = r.sample(["left", "left", "center", "right"], r.randint(1, 2))
         self.valigns = r.sample(["center", "center", "start", "end"], r.randint(1, 2))
         self.label_v = r.choice(["none", "index", "fraction", "line", "bullet", "slash", "bracket", "dash", "hash"])
@@ -164,7 +163,7 @@ class Gen:
         start = f"opacity:0;transform:{' '.join(tf) or 'none'}"
         end = "opacity:1;transform:none"
         if "blur" in props:
-            px = r.randint(6, 20)
+            px = r.randint(4, 10)  # a big blur on a whole text block costs phones every frame
             if amp >= 1:  # per-letter blur is one blur pass per letter per frame: too heavy for phones
                 start, end = start + f";filter:blur({px}px)", end + ";filter:none"
         if "clip" in props:
@@ -179,19 +178,9 @@ class Gen:
         self.css.append(f"@keyframes {name}{{0%{{{start}}}{mid}100%{{{end}}}}}")
         return name
 
-    def _from_only(self, kind):
-        """'From' keyframes only, so the element ends at its own styles (bar heights, heat opacity)."""
-        name = self.uid(kind[0])
-        opts = {"grow": ["transform:scaleY(0)", "transform:translateY(60px);opacity:0", "transform:scale(0)",
-                         "transform:scaleY(0) skewY(25deg)", "transform:scaleX(0)"],
-                "pop": ["transform:scale(0)", "transform:scale(0) rotate(180deg)", "transform:translateY(-30px);opacity:0",
-                        "opacity:0;filter:blur(6px)", "transform:scale(2.5);opacity:0"]}[kind]
-        self.css.append(f"@keyframes {name}{{from{{{self.r.choice(opts)}}}}}")
-        return name
-
-    def ambient(self, amp=1.0):
+    def ambient(self, amp=1.0, spin=True):
         r, name = self.r, self.uid("f")
-        if r.random() < .25:
+        if spin and r.random() < .25:
             self.css.append(f"@keyframes {name}{{to{{transform:rotate({self.sign() * 360}deg)}}}}")
             return f"{name} {r.randint(30, 90)}s linear infinite"
         parts = [f"translate({r.randint(-40, 40) * amp:.0f}px,{r.randint(-40, 40) * amp:.0f}px)",
@@ -472,7 +461,7 @@ class Gen:
         r = self.r
         bg, size = r.choice(BACKGROUNDS)
         return (f":root{{--fg:{self.fg};--inv:{self.inv};--body:{self.body_ff};--head:{self.head_ff};--small:{self.small_ff};"
-                f"--lm:{self.letter_kf};--lstg:{r.randint(20, 70)}ms;--grow:{self.grow};--pop:{self.pop};"
+                f"--lm:{self.letter_kf};--lstg:{r.randint(20, 70)}ms;"
                 f"--rad:{r.choice([0, 4, 10, 20])}px;--dotr:{r.choice(['50%', '2px', '0'])};--cap:{r.choice(['round', 'butt'])};"
                 f"--cols:{r.choice([2, 3])};--tr:{r.randint(-8, 8)}deg;--tks:{r.randint(15, 40)}s;"
                 f"--tkd:{r.choice(['normal', 'reverse'])};--ex:{r.randint(-6, 6) / 100}em;--ey:{r.randint(-6, 6) / 100}em;"
@@ -604,100 +593,133 @@ class Gen:
                                                  for i, (x, l) in enumerate(zip(values, labels))) + "</div>"
         return self.anim(f'<div role=img aria-label="{e(", ".join(f"{l}: {x}" for x, l in zip(values, labels) if l))}">{inner}</div>', t)
 
-    def decor(self, b):
-        r, k = self.r, self.r.choice(self.decor_v)
-        op = lambda: self.f(.06, .12)
-        if k == "blob":
-            cx, cy, R = r.uniform(15, 85), r.uniform(15, 85), r.uniform(18, 40)
-            harm = [(kk, r.uniform(0, .15), r.uniform(0, 6.3)) for kk in (2, 3, 4, 5)]
-            pts = []
-            for i in range(64):
-                th = i / 64 * 2 * math.pi
-                rr = R * (1 + sum(a * math.sin(kk * th + ph) for kk, a, ph in harm))
-                pts.append(f"{cx + rr * math.cos(th):.1f},{cy + rr * math.sin(th):.1f}")
-            body = f'<path d="M{" L".join(pts)}Z" fill="var(--fg)" opacity="{op()}"/>'
-        elif k == "rings":
-            cx, cy, step = r.uniform(0, 100), r.uniform(0, 100), r.uniform(4, 12)
-            dash = r.choice(["", f' stroke-dasharray="{r.uniform(.5, 3):.1f} {r.uniform(1, 4):.1f}"'])
-            body = "".join(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{step * i:.1f}" fill=none stroke="var(--fg)" stroke-width="{self.f(.2, .6)}" opacity="{self.f(.12, .22)}"{dash}/>'
-                           for i in range(1, r.randint(4, 10)))
-        elif k == "scatter":
-            shapes = r.sample(["c", "s", "t", "p", "x"], r.randint(1, 3))
-            fill = r.random() < .5
-            body = ""
-            for _ in range(r.randint(8, 24)):
-                x, y, sz, sh = r.uniform(0, 100), r.uniform(0, 100), r.uniform(1, 5), r.choice(shapes)
-                paint = f'fill="var(--fg)"' if fill else f'fill=none stroke="var(--fg)" stroke-width=".4"'
-                body += {"c": f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{sz / 2:.1f}" {paint} opacity="{self.f(.1, .22)}"/>',
-                         "s": f'<rect x="{x:.1f}" y="{y:.1f}" width="{sz:.1f}" height="{sz:.1f}" transform="rotate({r.randint(0, 90)} {x:.1f} {y:.1f})" {paint} opacity="{self.f(.1, .22)}"/>',
-                         "t": f'<path d="M{x:.1f},{y - sz:.1f} L{x + sz:.1f},{y + sz:.1f} L{x - sz:.1f},{y + sz:.1f}Z" {paint} opacity="{self.f(.1, .22)}"/>',
-                         "p": f'<path d="M{x - sz:.1f},{y:.1f}H{x + sz:.1f}M{x:.1f},{y - sz:.1f}V{y + sz:.1f}" stroke="var(--fg)" stroke-width=".5" opacity="{self.f(.15, .25)}"/>',
-                         "x": f'<path d="M{x - sz:.1f},{y - sz:.1f}L{x + sz:.1f},{y + sz:.1f}M{x + sz:.1f},{y - sz:.1f}L{x - sz:.1f},{y + sz:.1f}" stroke="var(--fg)" stroke-width=".5" opacity="{self.f(.15, .25)}"/>'}[sh]
-        elif k == "waves":
-            amp, freq, body = r.uniform(2, 8), r.uniform(1, 4), ""
-            for j in range(r.randint(3, 8)):
-                y0, ph = 10 + j * r.uniform(8, 14), r.uniform(0, 6.3)
-                pts = " L".join(f"{x:.0f},{y0 + amp * math.sin(2 * math.pi * freq * x / 100 + ph):.1f}" for x in range(0, 101, 2))
-                body += f'<path d="M{pts}" fill=none stroke="var(--fg)" stroke-width="{self.f(.2, .6)}" opacity="{self.f(.12, .22)}"/>'
-        elif k == "halftone":
-            sp, fx, fy, ph, body = r.choice([5, 6, 8]), r.uniform(.03, .1), r.uniform(.03, .1), r.uniform(0, 6.3), ""
-            for y in range(0, 101, sp):
-                for x in range(0, 101, sp):
-                    rad = (math.sin(x * fx + ph) + math.cos(y * fy) + 2) / 4 * sp * .45
-                    if rad > .3:
-                        body += f'<circle cx="{x}" cy="{y}" r="{rad:.1f}"/>'
-            body = f'<g fill="var(--fg)" opacity="{op()}">{body}</g>'
-        elif k == "glyph":
-            body = (f'<text x="{r.uniform(20, 80):.0f}" y="{r.uniform(40, 90):.0f}" font-size="{r.randint(50, 110)}" style="font-family:var(--head)" text-anchor=middle '
-                    f'fill="var(--fg)" opacity="{self.f(.05, .1)}" transform="rotate({r.randint(-30, 30)} 50 50)">{r.choice(GLYPHS)}</text>')
-        elif k == "grid":
-            gap, dot = r.choice([6, 8, 10]), r.random() < .5
-            cells = [(x, y) for y in range(gap // 2, 101, gap) for x in range(gap // 2, 101, gap)]
-            body = (f'<g fill="var(--fg)" opacity="{self.f(.1, .18)}">' + "".join(
-                f'<circle cx="{x}" cy="{y}" r=".6"/>' if dot else f'<rect x="{x - .5}" y="{y - .5}" width="1" height="1"/>' for x, y in cells) + "</g>")
-        elif k == "arcs":
-            cx, cy, body = r.choice([0, 100]), r.choice([0, 100]), ""
-            for i in range(1, r.randint(5, 12)):
-                rr = i * r.uniform(7, 11)
-                body += (f'<circle cx="{cx}" cy="{cy}" r="{rr:.1f}" fill=none stroke="var(--fg)" stroke-width="{self.f(.6, 2)}" '
-                         f'pathLength=100 stroke-dasharray="{r.randint(10, 40)} {r.randint(5, 20)}" opacity="{self.f(.08, .18)}"/>')
-        elif k == "confetti":
-            body = "".join(f'<rect x="{r.uniform(0, 100):.1f}" y="{r.uniform(0, 100):.1f}" width="{r.uniform(1, 3):.1f}" height="{r.uniform(.4, 1):.1f}" '
-                           f'transform="rotate({r.randint(0, 180)} 50 50)" fill="var(--{r.choice(["fg", "fg", "b"])})" opacity="{self.f(.15, .3)}"/>' for _ in range(r.randint(20, 45)))
-        elif k == "stars":  # four-point sparkles
-            body = ""
-            for _ in range(r.randint(5, 14)):
-                x, y, sz = r.uniform(0, 100), r.uniform(0, 100), r.uniform(1.5, 6)
-                q = sz * .18
-                body += (f'<path d="M{x:.1f},{y - sz:.1f}Q{x + q:.1f},{y - q:.1f} {x + sz:.1f},{y:.1f}Q{x + q:.1f},{y + q:.1f} {x:.1f},{y + sz:.1f}'
-                         f'Q{x - q:.1f},{y + q:.1f} {x - sz:.1f},{y:.1f}Q{x - q:.1f},{y - q:.1f} {x:.1f},{y - sz:.1f}Z" fill="var(--fg)" opacity="{self.f(.12, .25)}"/>')
-        elif k == "spiral":
-            cx, cy, turns, grow = r.uniform(20, 80), r.uniform(20, 80), r.uniform(3, 7), r.uniform(1.5, 3)
-            pts = " L".join(f"{cx + grow * th * math.cos(th):.1f},{cy + grow * th * math.sin(th):.1f}"
-                            for th in (i * .15 for i in range(int(turns * 2 * math.pi / .15))))
-            body = f'<path d="M{pts}" fill=none stroke="var(--fg)" stroke-width="{self.f(.3, .8)}" opacity="{self.f(.1, .2)}"/>'
-        elif k == "contours":  # topographic map: one wobbly ring, nested
-            cx, cy = r.uniform(10, 90), r.uniform(10, 90)
-            harm = [(kk, r.uniform(0, .12), r.uniform(0, 6.3)) for kk in (2, 3, 5)]
-            body = ""
-            for j in range(1, r.randint(6, 12)):
-                R = j * r.uniform(5, 8)
-                pts = [f"{cx + R * (1 + sum(a * math.sin(kk * th + ph + j * .3) for kk, a, ph in harm)) * math.cos(th):.1f},"
-                       f"{cy + R * (1 + sum(a * math.sin(kk * th + ph + j * .3) for kk, a, ph in harm)) * math.sin(th):.1f}"
-                       for th in (i / 48 * 2 * math.pi for i in range(48))]
-                body += f'<path d="M{" L".join(pts)}Z" fill=none stroke="var(--fg)" stroke-width=".35" opacity="{self.f(.12, .22)}"/>'
-        else:  # lines
-            ang, gap = r.randint(0, 180), r.uniform(3, 8)
-            body = (f'<g transform="rotate({ang} 50 50)" stroke="var(--fg)" stroke-width="{self.f(.15, .4)}" opacity="{self.f(.1, .2)}">'
-                    + "".join(f'<path d="M-50,{y:.1f}H150"/>' for y in [i * gap - 50 for i in range(int(200 / gap))]) + "</g>")
+    # ---- decorations: composed pieces at a corner or along an edge, never a scatter across the text ----
+    CORNER = ["blob", "rings", "vinyl", "contours", "sunburst", "orbit", "halftone", "sparkle"]
+    BAND = ["waves", "eq", "waveform", "staff"]
+    FULL = ["grid", "lines"]
+
+    def decors(self, b, n):
+        """n decorations for one slide, each in its own spot (two corners, a corner and a band, ...)."""
+        out, spots = "", ["tl", "tr", "bl", "br", "top", "bottom", "full"]
+        for k in self.r.sample(self.decor_v, min(n, len(self.decor_v))):
+            fits = [x for x in spots if (x == "full") == (k in self.FULL) and (x in ("top", "bottom")) == (k in self.BAND)]
+            if not fits:
+                continue
+            spot = self.r.choice(fits)
+            spots.remove(spot)
+            out += self.decor(k, b, spot)
+        return out
+
+    def decor(self, k, b, spot):
+        r = self.r
+        line = lambda w=1.2, op=.25: f'fill="none" stroke="var(--fg)" stroke-width="{w}" vector-effect="non-scaling-stroke" opacity="{op:.2f}"'
+        vb, body = "0 0 100 100", ""
+        if k == "blob":  # one soft organic shape with an offset outline
+            harm = [(h, r.uniform(.04, .14), r.uniform(0, 6.3)) for h in (2, 3, 5)]
+            shape = lambda R, ph=0: smooth([(50 + R * (1 + sum(a * math.sin(h * t + p + ph) for h, a, p in harm)) * math.cos(t),
+                                             50 + R * (1 + sum(a * math.sin(h * t + p + ph) for h, a, p in harm)) * math.sin(t))
+                                            for t in (i / 12 * 2 * math.pi for i in range(12))], True)
+            body = f'<path d="{shape(34)}" fill="var(--fg)" opacity="{self.f(.07, .12)}"/><path d="{shape(40, .6)}" {line(1.5, .3)}/>'
+        elif k == "rings":  # concentric, geometric spacing, one dashed, one bead
+            q, R = r.uniform(1.15, 1.35), r.uniform(6, 10)
+            for i in range(r.randint(5, 8)):
+                dash = ' stroke-dasharray="2 5"' if i == 2 else ""
+                body += f'<circle cx="50" cy="50" r="{R:.1f}" {line(1, .3 - i * .025)}{dash}/>'
+                R *= q
+            t = r.uniform(0, 6.3)
+            R0 = 6 * q ** 3
+            body += f'<circle cx="{50 + R0 * math.cos(t):.1f}" cy="{50 + R0 * math.sin(t):.1f}" r="2" fill="var(--fg)" opacity=".5"/>'
+        elif k == "vinyl":  # grooves, a label, a sheen
+            body = "".join(f'<circle cx="50" cy="50" r="{x / 2:.1f}" {line(.8, .12 if x % 6 else .2)}/>' for x in range(36, 97, 3))
+            body += (f'<circle cx="50" cy="50" r="15" fill="var(--fg)" opacity=".16"/><circle cx="50" cy="50" r="1.4" fill="var(--fg)" opacity=".5"/>'
+                     f'<path d="M50,3 A47,47 0 0 1 83,17" fill="none" stroke="var(--fg)" stroke-width="12" stroke-linecap="round" opacity=".05"/>')
+        elif k == "contours":  # topographic rings around one summit
+            harm = [(h, r.uniform(0, .12), r.uniform(0, 6.3)) for h in (2, 3, 5)]
+            for j in range(1, r.randint(7, 11)):
+                R = j * 5.2
+                pts = [(50 + R * (1 + sum(a * math.sin(h * t + p + j * .25) for h, a, p in harm)) * math.cos(t),
+                        50 + R * (1 + sum(a * math.sin(h * t + p + j * .25) for h, a, p in harm)) * math.sin(t))
+                       for t in (i / 16 * 2 * math.pi for i in range(16))]
+                body += f'<path d="{smooth(pts, True)}" {line(1, .3 - j * .02)}/>'
+        elif k == "sunburst":  # alternating rays from the centre
+            n = r.choice([16, 20, 24, 32])
+            for i in range(0, n, 2):
+                a0, a1 = i / n * 2 * math.pi, (i + 1) / n * 2 * math.pi
+                body += f'M50,50L{50 + 75 * math.cos(a0):.1f},{50 + 75 * math.sin(a0):.1f}L{50 + 75 * math.cos(a1):.1f},{50 + 75 * math.sin(a1):.1f}Z'
+            body = f'<path d="{body}" fill="var(--fg)" opacity="{self.f(.05, .09)}"/><circle cx="50" cy="50" r="9" fill="var(--fg)" opacity=".14"/>'
+        elif k == "orbit":  # tilted ellipses with a planet or two
+            tilt = r.randint(-35, 35)
+            for i in range(r.randint(3, 5)):
+                rx = 16 + i * 9
+                body += f'<ellipse cx="50" cy="50" rx="{rx}" ry="{rx * .42:.1f}" {line(1, .28 - i * .03)}/>'
+                if r.random() < .5:
+                    t = r.uniform(0, 6.3)
+                    body += f'<circle cx="{50 + rx * math.cos(t):.1f}" cy="{50 + rx * .42 * math.sin(t):.1f}" r="{r.uniform(1.2, 2.6):.1f}" fill="var(--fg)" opacity=".45"/>'
+            body = f'<g transform="rotate({tilt} 50 50)">{body}<circle cx="50" cy="50" r="6" fill="var(--fg)" opacity=".2"/></g>'
+        elif k == "halftone":  # a dot disc fading out from the centre
+            sp = r.choice([4, 5])
+            for y in range(sp // 2, 100, sp):
+                for x in range(sp // 2, 100, sp):
+                    rad = (1 - math.hypot(x - 50, y - 50) / 48) * sp * .42
+                    if rad > .25:
+                        body += f'<circle cx="{x}" cy="{y}" r="{rad:.2f}"/>'
+            body = f'<g fill="var(--fg)" opacity="{self.f(.12, .18)}">{body}</g>'
+        elif k == "sparkle":  # a small cluster, one big and a few small
+            for i in range(r.randint(3, 5)):
+                x, y = (50, 50) if not i else (50 + r.uniform(-30, 30), 50 + r.uniform(-30, 30))
+                sz, q = (r.uniform(14, 20) if not i else r.uniform(3, 7)), .16
+                body += (f'<path d="M{x:.1f},{y - sz:.1f}Q{x:.1f},{y:.1f} {x + sz:.1f},{y:.1f}Q{x:.1f},{y:.1f} {x:.1f},{y + sz:.1f}'
+                         f'Q{x:.1f},{y:.1f} {x - sz:.1f},{y:.1f}Q{x:.1f},{y:.1f} {x:.1f},{y - sz:.1f}Z" fill="var(--fg)" opacity="{.22 if not i else .3}"/>')
+        elif k in self.BAND:  # a strip along the top or bottom edge, drawn bottom-up
+            vb, wv = "0 0 200 50", [(r.uniform(.5, 3), r.uniform(0, 6.3), r.uniform(.3, 1)) for _ in range(3)]
+            noise = lambda x: sum(a * math.sin(f * x / 200 * 2 * math.pi + p) for f, p, a in wv) / sum(a for *_, a in wv)
+            if k == "waves":
+                for j in range(r.randint(4, 7)):
+                    pts = [(x, 30 + j * 3.5 + 7 * noise(x + j * 9)) for x in range(-10, 211, 15)]
+                    body += f'<path d="{smooth(pts)}" {line(1.2, .32 - j * .04)}/>'
+            elif k == "eq":
+                n = r.choice([24, 32, 40])
+                w = 200 / n
+                for i in range(n):
+                    h = 6 + 34 * (noise(i * w) + 1) / 2
+                    body += f'<rect x="{i * w + w * .2:.1f}" y="{50 - h:.1f}" width="{w * .6:.1f}" height="{h:.1f}" rx="{w * .3:.1f}"/>'
+                body = f'<g fill="var(--fg)" opacity="{self.f(.1, .16)}">{body}</g>'
+            elif k == "waveform":
+                for x in range(2, 200, 3):
+                    h = (1.5 + 12 * abs(noise(x * 3))) * math.sin(math.pi * x / 200) ** .5
+                    body += f'M{x},{32 - h:.1f}V{32 + h:.1f}'
+                body = f'<path d="{body}" stroke="var(--fg)" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="{self.f(.18, .26)}"/>'
+            else:  # staff: five lines that sway, a few notes riding them
+                bend = lambda x: 4 * noise(x)
+                for j in range(5):
+                    body += f'<path d="{smooth([(x, 18 + j * 4 + bend(x)) for x in range(-10, 211, 20)])}" {line(1, .26)}/>'
+                for x in sorted(r.sample(range(20, 190, 12), r.randint(4, 7))):
+                    step = r.randint(0, 8)
+                    y = 34 - step * 2 + bend(x)
+                    up = step < 4
+                    body += (f'<ellipse cx="{x}" cy="{y:.1f}" rx="2.6" ry="1.8" transform="rotate(-20 {x} {y:.1f})" fill="var(--fg)" opacity=".35"/>'
+                             f'<path d="M{x + (2.3 if up else -2.3):.1f},{y:.1f}V{y + (-13 if up else 13):.1f}" {line(1.2, .35)}/>')
+            if spot == "top":
+                body = f'<g transform="matrix(1 0 0 -1 0 50)">{body}</g>'
+        else:  # full-bleed textures, faded out where the text sits
+            if k == "grid":
+                gap = r.choice([5, 6, 8])
+                body = f'<g fill="var(--fg)" opacity=".22">' + "".join(
+                    f'<circle cx="{x}" cy="{y}" r=".32"/>' for y in range(gap // 2, 101, gap) for x in range(gap // 2, 101, gap)) + "</g>"
+            else:
+                ang, gap = r.choice([30, 45, 60, 120, 135, 150]), r.uniform(2.5, 4)
+                body = (f'<g transform="rotate({ang} 50 50)" {line(1, .18)}>'
+                        + "".join(f'<path d="M-50,{y:.1f}H150"/>' for y in [i * gap - 50 for i in range(int(200 / gap))]) + "</g>")
+            body = ('<defs><radialGradient id="f" gradientUnits="userSpaceOnUse" cx="50" cy="50" r="50"><stop offset=".45" stop-color="#000"/>'
+                    '<stop offset="1" stop-color="#fff"/></radialGradient><mask id="m"><rect width="100" height="100" fill="url(#f)"/></mask></defs>'
+                    f'<g mask="url(#m)">{body}</g>')
         # an <img>, not inline SVG: every browser rasterizes an image once and then just moves it, while Firefox
-        # redraws animated inline SVG every frame (hundreds of shapes for halftone/confetti: the stutter on phones)
-        body = re.sub(r'(\s[\w-]+)=([^"\s>]+)', r'\1="\2"', body)  # images are parsed as XML: quote every attribute
-        body = body.replace("var(--fg)", self.fg).replace("var(--b)", b).replace('style="font-family:var(--head)"', 'font-family="serif"')
-        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">{body}</svg>'
-        amb = self.ambient()
-        return (f'<img class="decor{" spin" if "linear" in amb else ""}" alt="" src="data:image/svg+xml,{urllib.parse.quote(svg)}" '
-                f'style="animation:{amb}">')
+        # redraws animated inline SVG every frame (the stutter on phones)
+        body = body.replace("var(--fg)", self.fg).replace("var(--b)", b)
+        fit = "slice" if spot == "full" or k in self.BAND else "meet"
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" preserveAspectRatio="xMidYMid {fit}">{body}</svg>'
+        return (f'<img class="decor {spot}" alt="" src="data:image/svg+xml,{urllib.parse.quote(svg)}" '
+                f'style="animation:{self.ambient(.4, False) if spot in ("top", "bottom", "full") else self.ambient()}">')
 
     def layout(self):
         return f"--al:{self.r.choice(self.aligns)};--va:{self.r.choice(self.valigns)}"
@@ -707,12 +729,15 @@ CSS = """
 html{-webkit-tap-highlight-color:transparent;scroll-snap-type:y mandatory;scroll-behavior:smooth}body{margin:0;font:18px/1.4 var(--body);color:var(--fg);background:#000}
 section{position:relative;overflow:hidden;min-height:100vh;min-height:100svh;scroll-snap-align:start;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:var(--va);
   padding:calc(64px + env(safe-area-inset-top)) calc(40px + env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));box-sizing:border-box}
-section{background:var(--a)}section::before{content:"";position:absolute;inset:-15%}
+section{background:var(--a);--c:color-mix(in srgb,var(--b) 30%,var(--a))}section::before{content:"";position:absolute;inset:-15%}
 @keyframes drift{from{transform:translate(-5%,-5%)}to{transform:translate(5%,5%)}}
 .bg{position:absolute;left:-10%;top:-10%;width:30%;height:30%;transform:scale(4);transform-origin:0 0;object-fit:cover;filter:blur(10px) saturate(1.4);opacity:0;mix-blend-mode:soft-light;transition:opacity 1.5s}
 .in .bg{opacity:.9}
 section:not(.in),section:not(.in) *,section:not(.in)::before{animation-play-state:paused!important}
-.decor{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.decor.spin{inset:-25%;width:150%;height:150%}  /* spinning: no bare corners */
+.decor{position:absolute;pointer-events:none}.decor.full{inset:-5%;width:110%;height:110%}  /* bleed: the drift never shows an edge */
+.decor.tl,.decor.tr,.decor.bl,.decor.br{width:min(100vmin,680px);height:min(100vmin,680px)}  /* corner pieces hang half off the edge */
+.tl{left:0;top:0;translate:-34% -34%}.tr{right:0;top:0;translate:34% -34%}.bl{left:0;bottom:0;translate:-34% 34%}.br{right:0;bottom:0;translate:34% 34%}
+.decor.top,.decor.bottom{left:-5%;width:110%;height:min(36vmin,280px)}.decor.top{top:-12px}.decor.bottom{bottom:-12px}
 section>div{position:relative;max-width:640px;width:100%;text-align:var(--al)}
 .a{opacity:0}.in .a{animation:var(--m) var(--d) var(--e) var(--t) both}
 h1,.big{font-size:max(24px,calc(clamp(40px,10vw,88px) * var(--hk,1)));margin:.1em 0}.fit *{animation:none!important}
@@ -954,6 +979,17 @@ def mood(trend, unit, pace):
     return f"{was}. Did a podcast get to you?"
 
 
+def smooth(pts, closed=False):
+    """Catmull-Rom through pts as cubic Béziers: soft curves from a handful of points."""
+    n = len(pts)
+    P = (lambda i: pts[i % n]) if closed else (lambda i: pts[max(0, min(n - 1, i))])
+    d = f"M{pts[0][0]:.1f},{pts[0][1]:.1f}"
+    for i in range(n if closed else n - 1):
+        (x0, y0), (x1, y1), (x2, y2), (x3, y3) = P(i - 1), P(i), P(i + 1), P(i + 2)
+        d += f"C{x1 + (x2 - x0) / 6:.1f},{y1 + (y2 - y0) / 6:.1f} {x2 - (x3 - x1) / 6:.1f},{y2 - (y3 - y1) / 6:.1f} {x2:.1f},{y2:.1f}"
+    return d + ("Z" if closed else "")
+
+
 def gap(days):
     """'2 years, 3 months' / '14 months'-ish, for comebacks."""
     y, m = divmod(round(days / 30.44), 12)
@@ -1119,7 +1155,7 @@ def section(g, i, key, content, media, decor=True):
             + (f' data-cover="{e(m["cover"])}"' if m.get("cover") else "")) if m.get("audio") else ""
     img = f'src="{e(m["cover"])}" alt=""' if m.get("cover") else ""
     bg = f"<img class=bg {img}>" if img else ""
-    deco = "".join(g.decor(b) for _ in range(g.r.choice([1, 1, 2]))) if decor else ""
+    deco = g.decors(b, g.r.choice([1, 1, 2])) if decor else ""
     np = (f"<figure class=np>{f'<img {img}>' if img else ''}"
           f'<figcaption>♪ {e(m["title"])}<br><em>{e(m["artist"])}</em></figcaption></figure>') if m.get("audio") else ""
     return f'<section class={key} style="--a:{a};--b:{b};{g.layout()}"{attr}>{bg}{deco}<div>{content}</div>{np}</section>'

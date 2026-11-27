@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from design import REPO, Gen, e, font_face, render  # noqa: E402
 from wrapped import compute  # noqa: E402
 
-SEEDS = [383, 405, 518, 316, 238, 440, 508, 241]  # one per card layout, varied fonts, light and dark; any seed works
+SEEDS = [204, 245, 222, 207, 206, 212, 203, 215]  # one per card layout, varied fonts, light and dark; any seed works
 YEAR = datetime.now().year
 ARTISTS = ["Velvet Static", "Mara Lune", "The Paper Orchards", "Koji & The Tides", "Saint Ofelia", "Northbound Choir",
            "Ash Lantern", "Dune Parade", "Ilse Varga", "Low Orbit Club", "Hollow Pines", "Tamsin Okafor"]
@@ -226,7 +226,7 @@ TOUR = [("intro", "Every minute, counted", "Minutes listened, plays, active days
         ("summary", "A card made to share", "Everything on one summary card in one of six layouts. Save it as an image, exactly as it looks, or share the link to the whole recap.")]
 GEN = [(40, "fonts", "Bundled variable fonts. Each design picks two and a random point in their design space: weight, width, slant, even 3D tilt or bounce."),
        (13, "colour schemes", "Analogous, triad, duotone, rainbow and more. Every colour is checked against the text so it always stays readable."),
-       (13, "decorations", "Blobs, halftone, contour lines, confetti, spirals, stars… drawn fresh for every slide."),
+       (14, "decorations", "Vinyl grooves, orbits, contour lines, a sway of sheet music, EQ bars, waveforms… composed fresh at the edges of every slide."),
        (6, "card layouts", "Year band, banner, poster, vinyl, polaroid or big type, framed by one of 13 patterns, with stickers and dividers."),
        (19, "ways to show data", "5 number styles, 4 headline styles, 5 rankings and 5 chart types, chosen per slide."),
        (64, "bits of seed", "Every design is a number. Like one? Set THEME_SEED and keep it.")]
