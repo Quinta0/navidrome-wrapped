@@ -394,7 +394,7 @@ class Gen:
                 + self._t(cx, cy + 9, text, 12, w=None, anchor="middle", maxw=52) + "</g></g>")
 
     def card_svg(self, d):
-        c, r, W, H = self.card, self.r, 400, 660
+        c, r, W, H = self.card, self.r, 400, 712 if d.get("badges") else 660
         self.year = d["year"]
         pat, period = self._pattern()
         L, top, info_y = c["layout"], "", 372
@@ -454,9 +454,14 @@ class Gen:
         big = not (self.fonts and self.fonts[0] in TEXTURED)
         info += self._t(col[0], y + 192, f"{d['minutes']:,}", 30, head=big, w=None if big else 700, extra=f'data-n="{d["minutes"]}"')
         info += self._t(col[1], y + 192, d["value"], 30, head=big, w=None if big else 700, maxw=cw)
-        foot = (f'<circle cx="38" cy="{H - 38}" r="16" fill="{c["ink"]}"/>'
-                + self._t(38, H - 38, c["glyph"], 16, head=False, anchor="middle", fill=c["bg"], extra='dominant-baseline="central"')
-                + self._t(W - 22, H - 33, c["footer"].format(y=self.year), 13, head=False, w=800, anchor="end", extra='letter-spacing="1"'))
+        if d.get("badges"):  # year cards: the rank emblems, in this design's badge style
+            foot = "".join(f'<g transform="rotate({self.badge["tilt"]} {55 + k * 80} {H - 50})"><svg x="{18 + k * 80}" y="{H - 88}" width="74" height="74" '
+                           f'viewBox="0 0 100 100" overflow="visible">{self.emblem_body(i, title, ic)}</svg></g>'
+                           for k, (i, title, ic) in enumerate(d["badges"]))
+        else:
+            foot = (f'<circle cx="38" cy="{H - 38}" r="16" fill="{c["ink"]}"/>'
+                    + self._t(38, H - 38, c["glyph"], 16, head=False, anchor="middle", fill=c["bg"], extra='dominant-baseline="central"'))
+        foot += self._t(W - 22, H - 33, c["footer"].format(y=self.year), 13, head=False, w=800, anchor="end", extra='letter-spacing="1"')
         label = f"{self.year} summary: top artist {d['artists'][0]}, top song {d['songs'][0]}, {d['minutes']:,} minutes"
         return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" style="border-radius:{c['radius']}px" role="img" aria-label="{e(label)}">'
                 f'<defs>{pat}<clipPath id=cclip><rect width="{W}" height="{H}" rx="{c["radius"]}"/></clipPath></defs>'
@@ -561,7 +566,13 @@ class Gen:
         return self.anim(f'<div class=guess>{btns}</div><p class=gres>It was <b>{e(answer)}</b></p>', t)
 
     def emblem(self, i, title, ic, t, caption):
-        """Year-recap rank badge: shape, ribbon, laurels and pips from this design's badge style, metal from the rank."""
+        """Year-recap rank badge on a slide, with its caption."""
+        svg = (f'<svg viewBox="0 0 100 100" role=img aria-label="{e(title)}, rank {i + 1} of 6" '
+               f'style="transform:rotate({self.badge["tilt"]}deg)">{self.emblem_body(i, title, ic)}</svg>')
+        return self.anim(f'<span class=emb>{svg}<small>{caption}</small></span>', t)
+
+    def emblem_body(self, i, title, ic):
+        """The badge drawing in a 100x100 box: shape, ribbon, laurels and pips from this design's badge style, metal from the rank."""
         st, gid = self.badge, self.uid("bg")
         stops = METALS[i]
         grad = "".join(f'<stop offset="{k / (len(stops) - 1):.2f}" stop-color="{c}"/>' for k, c in enumerate(stops))
@@ -596,10 +607,8 @@ class Gen:
         rib = {"notch": "M2,80 H98 L93,88.5 L98,97 H2 L7,88.5Z", "flat": "M6,80 H94 Q97,80 97,83 V94 Q97,97 94,97 H6 Q3,97 3,94 V83 Q3,80 6,80Z",
                "swallow": "M0,82 L10,80 H90 L100,82 L95,89 L100,96 L90,98 H10 L0,96 L5,89Z"}[st["ribbon"]]
         body += (f'<path d="{rib}" fill="{ink}"/><text x="50" y="89.2" text-anchor="middle" dominant-baseline="middle" font-size="9" '
-                 f'data-fs="80" data-min="5" fill="{stops[0]}" style="font-family:var(--head);font-weight:700;letter-spacing:.04em">{e(title.upper())}</text>')
-        svg = (f'<svg viewBox="0 0 100 100" role=img aria-label="{e(title)}, rank {i + 1} of 6" '
-               f'style="transform:rotate({st["tilt"]}deg)">{body}</svg>')
-        return self.anim(f'<span class=emb>{svg}<small>{caption}</small></span>', t)
+                 f'data-fs="80" data-min="5" fill="{stops[0]}" font-family="{e(self.head_ff)}" font-weight="700" letter-spacing=".4">{e(title.upper())}</text>')
+        return body
 
     def achievements(self, items, t):
         """GitHub-style badge grid: a coloured disc with its icon, a metal ring for the tier, an x2/x3 tag."""
@@ -1120,6 +1129,12 @@ def achievements(s):
 ACHIEVEMENT_COUNT = 11
 
 
+def card_badges(s):
+    """The two year ranks as (rank, title, icon) for the summary card."""
+    return [(rank_of(v, lad), lad[rank_of(v, lad)][1], ic) for v, lad, ic in
+            ((s["minutes"], TIME_RANKS, "headphones"), (s["n_artists"], EXPLORE_RANKS, "compass"))]
+
+
 def rank_badge(g, value, ladder, ic, unit, t):
     i = rank_of(value, ladder)
     nxt = (f"Next: <b>{ladder[i + 1][1]}</b> at {ladder[i + 1][0]:,} {unit}" if i + 1 < len(ladder)
@@ -1178,9 +1193,10 @@ def render(s, year, media=None, seed=None, month=None):
     ]
     top5 = s["artists"][:5]
     persona = ("Ride or die" if s["loyalty"] >= .6 else "Loyal, with a wandering ear" if s["loyalty"] >= .35 else "Free spirit")
-    slides.append(("loyalty", "Loyalty score", [
-        lambda t: g.headline(f"{s['loyalty'] * 100:.0f}%", t), lambda t: g.text(f"of your plays went to your top {len(top5)} artists", t),
-        lambda t: g.text(f"Verdict: <b>{persona}</b>", t, "sub"), lambda t: g.ranks([(e(a), n) for a, n in top5], t)]))
+    if not month:  # a month has the Ride or Die badge instead
+        slides.append(("loyalty", "Loyalty score", [
+            lambda t: g.headline(f"{s['loyalty'] * 100:.0f}%", t), lambda t: g.text(f"of your plays went to your top {len(top5)} artists", t),
+            lambda t: g.text(f"Verdict: <b>{persona}</b>", t, "sub"), lambda t: g.ranks([(e(a), n) for a, n in top5], t)]))
     if s["albums"]:
         top_album = s["albums"][0]
         slides.append(("album", f"Your album of the {unit}", [
@@ -1208,7 +1224,7 @@ def render(s, year, media=None, seed=None, month=None):
     if s["genres"]:
         slides.append(("genre", "Your top genre", [
             lambda t: g.headline(s["genres"][0][0], t), lambda t: g.ranks([(e(x), n) for x, n in s["genres"][1:]], t)]))
-    if len(s["years"]) >= 20:
+    if not month and len(s["years"]) >= 20:  # a month has the Time Traveller badge instead
         lo, hi = s["years"][0] // 10, s["years"][-1] // 10
         lo = max(lo, hi - 9)  # ten decades at most; older outliers fold into the first
         dec = [sum(1 for y in s["years"] if max(lo, y // 10) == d) for d in range(lo, hi + 1)]
@@ -1251,7 +1267,7 @@ def render(s, year, media=None, seed=None, month=None):
         slides.append(("fling", "The fling", [
             lambda t: g.headline(fl["title"], t), lambda t: g.text(f"{e(fl['artist'])} · {fl['n']} plays from {fl['start']:%d %b} to {fl['end']:%d %b}", t),
             lambda t: g.text("…and then never again", t, "sub")]))
-    if s["formats"] and s["formats"][0][0] != "?":
+    if not month and s["formats"] and s["formats"][0][0] != "?":  # a month has the Audiophile badge instead
         slides.append(("audio", "Audiophile check", [
             lambda t: g.headline(f"{s['lossless'] * 100:.0f}%", t), lambda t: g.text("of your plays were lossless", t),
             lambda t: g.ranks([(e(f.upper()), n) for f, n in s["formats"]], t)]
@@ -1260,7 +1276,7 @@ def render(s, year, media=None, seed=None, month=None):
         slides.append(("badges", "Badges earned", [
             lambda t: g.headline(f"{len(earned)} of {ACHIEVEMENT_COUNT}", t), lambda t: g.text(f"badges unlocked in {period}", t),
             lambda t: g.achievements(sorted(earned, key=lambda x: -x[3]), t)]))
-    if s["lib_songs"]:
+    if not month and s["lib_songs"]:  # all-time server stats: the same every month
         slides.append(("library", "Your Navidrome library", [
             lambda t: g.number(s["lib_songs"], t, lib_frac), lambda t: g.text("songs", t),
             lambda t: g.text(f"{s['lib_starred']:,} starred · {s['never_played']:,} never played", t, "sub"),
@@ -1277,7 +1293,8 @@ def render(s, year, media=None, seed=None, month=None):
     art = media.get("card_art") or (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
     last_label, last_value = ("Top Genre", s["genres"][0][0]) if s["genres"] else ("New Artists", f"{s['n_new']:,}")
     d = {"year": short, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
-         "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art}
+         "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art,
+         "badges": None if month else card_badges(s)}
     content = (f'<div class=a style="--m:{g.card_kf};--d:1.2s;--t:0s;--e:{g.eases[0]}"><div class=card>{g.card_svg(d)}</div></div>'
                + g.anim(f"<p class=save><button id=save data-year={slug}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p><p class=own><a href=\"{REPO}\" target=_blank rel=noopener>Make your own Wrapped ↗</a></p>", .6))
     body += section(g, len(slides), "summary", content, media, decor=False)

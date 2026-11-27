@@ -8,7 +8,7 @@ import os, random, re, sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from design import REPO, Gen, e, font_face, render  # noqa: E402
+from design import REPO, Gen, card_badges, e, font_face, render  # noqa: E402
 from wrapped import compute, past, period_range, prev_start  # noqa: E402
 
 YEAR = datetime.now().year
@@ -58,9 +58,11 @@ def card(seed, s, k):
     g = Gen(seed)
     last = ("Top Genre", s["genres"][0][0]) if s["genres"] else ("New Artists", f"{s['n_new']:,}")
     svg = g.card_svg({"year": str(YEAR), "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
-                      "minutes": s["minutes"], "label": last[0], "value": last[1], "name": s["artists"][0][0], "art": None})
+                      "minutes": s["minutes"], "label": last[0], "value": last[1], "name": s["artists"][0][0], "art": None,
+                      "badges": card_badges(s)})
     for i in ("cpat", "creg", "cart", "cclip", "cring", "cfade"):
         svg = re.sub(rf"\b{i}\b", f"{i}{k}", svg)
+    svg = re.sub(r"\bbg(\d+)\b", rf"bg\1-{k}", svg)  # emblem gradients
     pat = next(c for c in g.css if c.startswith("@keyframes cpat")).split(".in .card")[0].replace("cpat", f"cpat{k}")
     return svg, pat + f".c{k} .patmove{{animation:cpat{k} {8 + k % 5}s linear infinite}}", g
 
