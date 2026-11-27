@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<CommunityApplications>
+  <Profile>navidrome-wrapped: a self-hosted year-in-music recap built from your ListenBrainz and/or Last.fm history and your Navidrome server. Support and bug reports: https://github.com/Quinta0/navidrome-wrapped/issues</Profile>
+  <Icon>https://raw.githubusercontent.com/Quinta0/navidrome-wrapped/main/docs/icon.png</Icon>
+  <WebPage>https://github.com/Quinta0/navidrome-wrapped</WebPage>
+</CommunityApplications>
