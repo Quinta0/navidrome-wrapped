@@ -606,7 +606,7 @@ class Gen:
         body += icon(ic, 37, 34, 26, ink, 2.2).replace('<g ', '<g opacity=".8" ', 1)
         rib = {"notch": "M2,80 H98 L93,88.5 L98,97 H2 L7,88.5Z", "flat": "M6,80 H94 Q97,80 97,83 V94 Q97,97 94,97 H6 Q3,97 3,94 V83 Q3,80 6,80Z",
                "swallow": "M0,82 L10,80 H90 L100,82 L95,89 L100,96 L90,98 H10 L0,96 L5,89Z"}[st["ribbon"]]
-        body += (f'<path d="{rib}" fill="{ink}"/><text x="50" y="89.2" text-anchor="middle" dominant-baseline="middle" font-size="9" '
+        body += (f'<path d="{rib}" fill="{ink}"/><text x="50" y="89.2" text-anchor="middle" dominant-baseline="middle" font-size="{min(9, 80 / (.68 * max(1, len(title)))):.1f}" '
                  f'data-fs="80" data-min="5" fill="{stops[0]}" font-family="{e(self.head_ff)}" font-weight="700" letter-spacing=".4">{e(title.upper())}</text>')
         return body
 
@@ -1338,11 +1338,38 @@ header p{opacity:.6;margin:.8em 0 2.4em}
   background:color-mix(in srgb,var(--fg) 18%,transparent)}
 .rc.big{grid-column:1/-1;min-height:260px;padding:24px}.rc.big h2{font-size:clamp(64px,17vw,150px)}
 .rc.big img{width:min(30%,200px);height:auto;aspect-ratio:1;top:24px;right:24px;border-radius:16px;rotate:4deg}
+.bd{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px!important}.bd svg{width:22px;height:22px;filter:drop-shadow(0 2px 3px #0005)}
+.rc.big .bd svg{width:34px;height:34px}
+.em{display:flex;gap:10px;margin-top:10px!important}.em svg{width:84px;height:84px;filter:drop-shadow(0 6px 12px #0006)}
 .empty{opacity:.7;font-size:18px}
 footer{margin-top:8px;opacity:.6;font-size:14px}footer a{color:inherit;text-underline-offset:3px}footer a:hover{opacity:1}
 @keyframes up{from{opacity:0;transform:translateY(24px)}}
 @media (prefers-reduced-motion:reduce){.rc{animation:none;transition:none}}
 """
+
+
+def year_badges(recaps):
+    """The year's best: each badge any of its months earned, at the highest tier it reached. recaps: [(slug, meta)]."""
+    best = {}
+    for slug, m in recaps:
+        if len(slug) > 4:
+            for n, hue, ic, tier in m.get("badges") or []:
+                if n not in best or tier > best[n][3]:
+                    best[n] = [n, hue, ic, tier]
+    return list(best.values())
+
+
+def mini_badges(items):
+    """A row of small round badges for an overview card, highest tier first."""
+    if not items:
+        return ""
+    out = ""
+    for n, hue, ic, tier in sorted(items, key=lambda x: -x[3]):
+        label = n + (f" x{tier + 1}" if tier else "")
+        out += (f'<svg viewBox="0 0 64 64" role=img aria-label="{e(label)}"><title>{e(label)}</title>'
+                f'<circle cx="32" cy="32" r="27" fill="hsl({hue} 65% 50%)" stroke="{TIER_RINGS[tier]}" stroke-width="7"/>'
+                f'{icon(ic, 17, 17, 30, "#fff", 2.4)}</svg>')
+    return f"<p class=bd>{out}</p>"
 
 
 def index_page(recaps):
@@ -1361,6 +1388,12 @@ def index_page(recaps):
                 sub += " so far"
             stats = (f"<p><b>{m['minutes']:,}</b> minutes</p>" if m.get("minutes") is not None else "")
             stats += f"<p><small>Top artist</small> {e(m['artist'])}</p>" if m.get("artist") else ""
+            stats += mini_badges(year_badges(years[y]) if big else m.get("badges"))
+            if big and m.get("ranks") and m.get("seed") is not None:  # the year's own rank emblems, drawn from its design seed
+                g = Gen(m["seed"])
+                ems = "".join(f'<svg viewBox="0 0 100 100" role=img aria-label="{e(title)}, rank {i + 1} of 6" style="rotate:{g.badge["tilt"]}deg">'
+                              f'{g.emblem_body(i, title, ic)}</svg>' for i, title, ic in m["ranks"])
+                stats += "<p class=em>" + re.sub(r'\bbg(\d+)\b', rf'bg\1-{slug}', ems) + "</p>"  # ids unique per card
             img = f'<img src="{e(slug)}/{e(m["cover"])}" alt="" loading=lazy>' if m.get("cover") else ""
             badge = "<i>in progress</i>" if m.get("partial") else ""
             cards += (f'<a class="rc{" big" if big else ""}" href="{e(slug)}/" style="--a:{m.get("a", "#2a2a33")};--b:{m.get("b", "#46465a")};'

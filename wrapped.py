@@ -13,7 +13,7 @@ import argparse, base64, hashlib, json, os, secrets, sys, time, urllib.parse, ur
 from collections import Counter
 from datetime import datetime, timedelta
 
-from design import Gen, index_page, render
+from design import Gen, achievements, card_badges, index_page, render
 
 UA = "music-wrapped/1.0"
 DEFAULT_SECS = 210  # fallback track length when no source knows it
@@ -371,7 +371,10 @@ def build(year, month, listens, prior, library, nd, out, seed=None):
     a_col, b_col = (g := Gen(seed)).palette[0]
     top = lambda k: stats[k][0][0] if stats[k] else None
     json.dump({"minutes": stats["minutes"], "plays": stats["plays"], "artist": top("artists"), "a": a_col, "b": b_col, "fg": g.fg,
-               "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed},
+               "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed,
+               # a month's badges for its overview card; the year's card rolls them up from these
+               "badges": [[n, hue, ic, tier] for n, hue, ic, tier, _ in achievements(stats)] if month and listens else None,
+               "ranks": card_badges(stats) if not month and listens else None},  # the year's rank emblems for its card
               open(os.path.join(out, "meta.json"), "w"))
     print(f"{len(listens)} listens -> {out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
 

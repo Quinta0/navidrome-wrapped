@@ -78,10 +78,13 @@ assert "Put another way" in render(s3, 2026, seed=3, month=5) and "neighbours" i
 assert mood(-.3, "year", True).startswith("You’re on pace to listen 30% less than last year.")
 print("new slides ok")
 # overview: year card first, months newest first, recaps without meta.json still listed
-import json, os, tempfile
+import json, os, re, tempfile
 from wrapped import build_index
 site = tempfile.mkdtemp()
-for slug, meta in (("2026", {"minutes": 34011, "artist": "A&B", "partial": True}), ("2026-10", None), ("2026-11", {"minutes": 900})):
+for slug, meta in (("2026", {"minutes": 34011, "artist": "A&B", "partial": True, "seed": 7,
+                            "ranks": [[2, "Headphone Regular", "headphones"], [0, "Homebody", "compass"]]}), ("2026-10", None),
+                   ("2026-11", {"minutes": 900, "badges": [["Night Owl", 250, "moon", 0], ["On Fire", 10, "flame", 1]]}),
+                   ("2026-09", {"badges": [["Night Owl", 250, "moon", 2]]})):
     os.makedirs(f"{site}/{slug}")
     open(f"{site}/{slug}/index.html", "w").write("x")
     if meta:
@@ -89,7 +92,12 @@ for slug, meta in (("2026", {"minutes": 34011, "artist": "A&B", "partial": True}
 build_index(site)
 idx = open(f"{site}/index.html").read()
 assert idx.index('href="2026/"') < idx.index('href="2026-11/"') < idx.index('href="2026-10/"'), idx
-assert "34,011" in idx and "A&amp;B" in idx and "in progress" in idx and "3 recaps" in idx
+assert "34,011" in idx and "A&amp;B" in idx and "in progress" in idx and "4 recaps" in idx
+from design import year_badges
+assert sorted(year_badges([("2026-11", {"badges": [["Night Owl", 250, "moon", 0], ["On Fire", 10, "flame", 1]]}),
+                           ("2026-09", {"badges": [["Night Owl", 250, "moon", 2]]}), ("2026", {})])) == [["Night Owl", 250, "moon", 2], ["On Fire", 10, "flame", 1]]
+assert 'aria-label="Headphone Regular, rank 3 of 6"' in idx and "HOMEBODY" in idx and re.search(r'id="bg\d+-2026"', idx)
+assert idx.count('aria-label="Night Owl x3"') == 2 and 'aria-label="Night Owl"' in idx  # September's gold on the year card and on September
 print("index ok")
 # backfill: which finished periods are missing, per REFRESH mode
 import wrapped
