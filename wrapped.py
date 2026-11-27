@@ -111,23 +111,15 @@ def past(listens_before, prev_start):
     return {"last": last, "prev": prev}
 
 
-def past_cached(name, listens_before, prev_start):
-    """past(), cached: the past doesn't change (delete cache/ after big imports)."""
+def past_cached(name, fetch, prev_start):
+    """past() of fetch()'s listens, cached: the past doesn't change (delete cache/ after big imports)."""
     path = os.path.join(CACHE, f"past-{name}.json")
     if os.path.exists(path):
         return json.load(open(path))
-    p = past(listens_before, prev_start)
+    p = past(fetch(), prev_start)
     os.makedirs(CACHE, exist_ok=True)
     json.dump(p, open(path, "w"))
     return p
-
-
-def merge_past(a, b):
-    """Two sources' past() in one (cross-scrobbles may double the previous period's counts; fine for a ranking)."""
-    last = {k: max(a["last"].get(k, 0), b["last"].get(k, 0)) for k in {*a["last"], *b["last"]}}
-    prev = {k: [(a["prev"].get(k) or b["prev"][k])[0], a["prev"].get(k, [0, 0])[1] + b["prev"].get(k, [0, 0])[1]]
-            for k in {*a["prev"], *b["prev"]}}
-    return {"last": last, "prev": prev}
 
 
 def fetch_media(nd, songs, out):
@@ -234,9 +226,9 @@ def sequence(listens):
     return out
 
 
-def compute(listens, library, last=None, prev=None, start=None):
+def compute(listens, library, last=None, prev=None, start=None, end=None):
     """last: {artist key: last listen ts before the period}, prev: {artist key: [name, plays]} in the previous period
-    (both from past()), start: the period's first second (for comebacks)."""
+    (both from past()), start/end: the period's first and last second (comebacks, and the pace of one still running)."""
     last, prev = last or {}, prev or {}
     lib = {key(s.get("artist"), s.get("title")): s for s in library}
     secs, genres = 0, Counter()
@@ -279,7 +271,7 @@ def compute(listens, library, last=None, prev=None, start=None):
     top_artist, second = (artists.most_common(2) + [(None, 0)] * 2)[:2]
     peak_m, peak_h = months.index(max(months)) + 1, hours.index(max(hours))
     songs = {
-        "intro": pick(), "track": pick(), "summary": pick(),
+        "intro": pick(), "track": pick(), "summary": pick(), "minutes": pick(),
         "artist": pick(lambda l: l["artist"] == top_artist[0]),
         "album": pick(lambda l: (l["album"], l["artist"]) == first(albums)),
         "explore": pick(lambda l: l["artist"] == second[0]),
@@ -317,6 +309,9 @@ def compute(listens, library, last=None, prev=None, start=None):
         "years": years, "median_year": years[len(years) // 2] if years else None,
         "formats": fmts.most_common(5), "lossless": sum(n for f, n in fmts.items() if f in LOSSLESS) / max(1, sum(fmts.values())),
         "bitrate": round(sum(rates) / len(rates)) if rates else None,
+        # plays vs the previous period, at this period's pace if it isn't over yet (plays, not minutes: both sides count the same way)
+        "trend": (len(listens) / min(1, max(.05, (time.time() - start) / (end - start))) / prev_plays - 1
+                  if (prev_plays := sum(n for _, n in prev.values())) and end else None),
     }
 
 
@@ -364,7 +359,7 @@ def history(env, start, end):
 def build(year, month, listens, prior, library, nd, out, seed=None):
     """Write one recap (index.html, media/, meta.json) to out. prior: past() of the listens before it."""
     start, end = period_range(year, month)
-    stats = compute(listens, library, prior["last"], prior["prev"], start)
+    stats = compute(listens, library, prior["last"], prior["prev"], start, end)
     os.makedirs(out, exist_ok=True)
     media = fetch_media(nd, stats["songs"], out) if nd and listens else {}
     cover = (media.get("artist") or {}).get("cover") or (media.get("summary") or {}).get("cover")
@@ -450,11 +445,11 @@ def main():
         return backfill(env, a.backfill, env("REFRESH") or "both", library, nd, a.seed)
     start, end = period_range(a.year, a.month)
     period = slug(a.year, a.month)
-    prior, ps = {"last": {}, "prev": {}}, prev_start(a.year, a.month)
-    if env("LB_USER"):  # listenbrainz pages from start backwards; its max_ts is exclusive
-        prior = merge_past(prior, past_cached(f"lb-{env('LB_USER')}-{period}", listenbrainz(env("LB_USER"), env("LB_TOKEN"), 0, start), ps))
-    if env("LASTFM_USER") and env("LASTFM_KEY"):
-        prior = merge_past(prior, past_cached(f"lastfm-{env('LASTFM_USER')}-{period}", lastfm(env("LASTFM_USER"), env("LASTFM_KEY"), 1, start - 1), ps))
+    # everything before the period, both sources merged so cross-scrobbles don't double the previous period's plays
+    lb, fm = env("LB_USER"), env("LASTFM_USER") and env("LASTFM_KEY") and env("LASTFM_USER")
+    fetch = lambda: merge(*([listenbrainz(lb, env("LB_TOKEN"), 0, start)] if lb else []),
+                          *([lastfm(fm, env("LASTFM_KEY"), 1, start - 1)] if fm else []))
+    prior = past_cached(f"{'lb-' + lb + '-' if lb else ''}{'lastfm-' + fm + '-' if fm else ''}{period}", fetch, prev_start(a.year, a.month))
     build(a.year, a.month, history(env, start, end), prior, library, nd, a.out, a.seed)
 
 

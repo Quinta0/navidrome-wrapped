@@ -44,7 +44,7 @@ def demo_stats():
     listens.sort(key=lambda l: l["ts"])
     last = {ARTISTS[0].lower(): t0 - 86400, ARTISTS[2].lower(): t0 - 86400, ARTISTS[5].lower(): t0 - 800 * 86400}
     prev = {a.lower(): [a, n] for a, n in zip(ARTISTS, [900, 120, 500, 60, 400, 10, 300, 20, 30, 200, 15, 5])}
-    return compute(listens, library, last, prev, int(t0))
+    return compute(listens, library, last, prev, int(t0), int(datetime(YEAR + 1, 1, 1).timestamp()) - 1)
 
 
 def card(seed, s, k):

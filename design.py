@@ -931,6 +931,29 @@ document.addEventListener('visibilitychange',()=>{
 """
 
 
+# minutes it takes to do each thing once; the slide picks the ones that land on a readable count
+THINGS = [(6, "soft-boiled eggs, back to back"), (3, "bags of microwave popcorn"), (20, "power naps"),
+          (92, "laps of the Earth on the ISS"), (686, "Lord of the Rings marathons (extended, obviously)"),
+          (960, "full runs of Wagner's Ring cycle"), (1320, "flights from London to Sydney"), (1460, "years of brushing your teeth, twice a day"),
+          (44640, "months of doing nothing else"), (90, "football matches, no extra time"), (25, "pomodoros of not working"),
+          (5.9, "Bohemian Rhapsodies"), (45, "loads of laundry, washed and spun"), (480, "full nights of sleep")]
+
+
+def mood(trend, unit, pace):
+    """A cheeky line about plays vs the period before."""
+    p = abs(round(trend * 100))
+    was = f"{'You’re on pace to listen' if pace else 'You listened'} {p}% {'more' if trend >= 0 else 'less'} than last {unit}"
+    if trend >= .5:
+        return f"{was}. Your neighbours have noticed."
+    if trend >= .1:
+        return f"{was}. Headphones: thoroughly worn in."
+    if trend > -.1:
+        return f"{'You’re on pace to land' if pace else 'You landed'} within {p}% of last {unit}. Steady as a metronome."
+    if trend > -.5:
+        return f"{was}. Touching grass, are we?"
+    return f"{was}. Did a podcast get to you?"
+
+
 def gap(days):
     """'2 years, 3 months' / '14 months'-ish, for comebacks."""
     y, m = divmod(round(days / 30.44), 12)
@@ -948,6 +971,7 @@ def render(s, year, media=None, seed=None, month=None):
     g = Gen(seed if seed is not None else random.getrandbits(64))
     wd = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     a1, t1 = s["artists"][0], s["tracks"][0]
+    partial = datetime.now() < datetime(year + (month or 12) // 12, (month or 12) % 12 + 1, 1)
     artist_item = lambda k: f"{e(k[0])} <em>{e(k[1])}</em>"
     lib_frac = 1 - s["never_played"] / s["lib_songs"] if s["lib_songs"] else None
 
@@ -957,6 +981,14 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.text("minutes listened", t),
             lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub")]),
     ]
+    fits = [(s["minutes"] / m, what) for m, what in THINGS if 3 <= s["minutes"] / m <= 9999]
+    if fits:
+        (n1, w1), *more = g.r.sample(fits, min(2, len(fits)))
+        fmt = lambda n: f"{n:,.0f}" if n >= 10 else f"{n:.1f}"
+        slides.append(("minutes", "Put another way", [
+            lambda t: g.headline(fmt(n1), t), lambda t: g.text(w1, t)]
+            + [lambda t, n=n, w=w: g.text(f"or {fmt(n)} {w}", t, "sub") for n, w in more]
+            + ([lambda t: g.text(f"<b>{mood(s['trend'], unit, partial)}</b>", t)] if s.get("trend") is not None else [])))
     if len(s["artists"]) >= 4:
         opts = [a for a, _ in s["artists"][:4]]
         g.r.shuffle(opts)

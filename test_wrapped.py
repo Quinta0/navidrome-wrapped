@@ -61,6 +61,11 @@ assert abs(s2["loyalty"] - 1) < 1e-9  # 5 artists: all of them are the top 5
 page = render(s2, 2026, seed=3, month=5)
 for txt in ("On a loop", "rabbit hole", "favourite segue", "The fling", "The comeback", "Since last month", "Audiophile check", "Loyalty score", "class=guess"):
     assert txt in page, txt
+from design import mood
+s3 = compute([dict(l) for l in seq], lib2, p["last"], p["prev"], int(datetime(2026, 5, 1).timestamp()), int(datetime(2026, 6, 1).timestamp()) - 1)
+assert abs(s3["trend"] - (16 / 2 - 1)) < 1e-9, s3["trend"]  # 16 plays vs 2 in April, May is over
+assert "Put another way" in render(s3, 2026, seed=3, month=5) and "neighbours" in mood(7.5, "month", False)
+assert mood(-.3, "year", True).startswith("You’re on pace to listen 30% less than last year.")
 print("new slides ok")
 # overview: year card first, months newest first, recaps without meta.json still listed
 import json, os, tempfile
