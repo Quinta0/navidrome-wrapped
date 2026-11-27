@@ -280,7 +280,7 @@ def compute(listens, library, last=None, prev=None, start=None, end=None):
         "month": pick(lambda l: l["when"].month == peak_m),
         "hour": pick(lambda l: l["when"].hour == peak_h),
         "streak": pick(lambda l: top_day and l["when"].date() == top_day[0]),
-        "library": lib_top[0] if lib_top and lib_top[0].get("playCount") else None,
+        "library": lib_top[0] if lib_top and lib_top[0].get("playCount") else None, "badges": pick(),
         "guess": pick(),
         "loyalty": pick(lambda l: l["artist"] == top_artist[0]),
         "comeback": pick(lambda l: back and l["artist"] == back[0][0]),

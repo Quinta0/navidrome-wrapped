@@ -122,6 +122,11 @@ class Gen:
         self.valigns = r.sample(["center", "center", "start", "end"], r.randint(1, 2))
         self.label_v = r.choice(["none", "index", "fraction", "line", "bullet", "slash", "bracket", "dash", "hash"])
         self._card()
+        rb = random.Random(f"badge{seed}")  # its own stream: adding badges doesn't change any other part of a design
+        self.badge = {"shape": rb.choice(["circle", "hexagon", "shield", "seal", "octagon", "diamond"]),
+                      "ribbon": rb.choice(["notch", "flat", "swallow"]), "laurel": rb.random() < .5,
+                      "pips": rb.choice(["dots", "stars", "bars"]), "ring": rb.choice(["solid", "dashed", "double"]),
+                      "tilt": rb.randint(-6, 6)}
 
     # ---- primitives ----
     def uid(self, p):
@@ -555,6 +560,60 @@ class Gen:
         btns = "".join(f'<button{" data-ok=1" if o == answer else ""}>{e(o)}</button>' for o in options)
         return self.anim(f'<div class=guess>{btns}</div><p class=gres>It was <b>{e(answer)}</b></p>', t)
 
+    def emblem(self, i, title, ic, t, caption):
+        """Year-recap rank badge: shape, ribbon, laurels and pips from this design's badge style, metal from the rank."""
+        st, gid = self.badge, self.uid("bg")
+        stops = METALS[i]
+        grad = "".join(f'<stop offset="{k / (len(stops) - 1):.2f}" stop-color="{c}"/>' for k, c in enumerate(stops))
+        poly = lambda n, r1, r2=None, off=-90: "M" + " L".join(
+            f"{50 + (r1 if k % 2 == 0 or r2 is None else r2) * math.cos(math.radians(off + k * 360 / n)):.1f},"
+            f"{48 + (r1 if k % 2 == 0 or r2 is None else r2) * math.sin(math.radians(off + k * 360 / n)):.1f}" for k in range(n)) + "Z"
+        d = {"circle": "M50,6 A42,42 0 1 1 49.99,6Z", "hexagon": poly(6, 44), "octagon": poly(8, 44, None, -67.5),
+             "seal": poly(28, 44, 39), "diamond": "M50,2 L95,48 L50,94 L5,48Z",
+             "shield": "M50,4 L88,16 V48 C88,74 72,90 50,98 C28,90 12,74 12,48 V16Z"}[st["shape"]]
+        ink = "#1d1d22"
+        body = f'<defs><linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="1">{grad}</linearGradient></defs>'
+        if st["laurel"]:
+            for side in (-1, 1):
+                for k in range(6):
+                    a = math.radians(100 + k * 17)
+                    x, y = 50 + side * 47 * math.cos(a - math.pi / 2 + .25), 50 + 47 * math.sin(a - math.pi / 2 + .25)
+                    body += (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="2.6" ry="6" transform="rotate({side * (k * 17 + 15)} {x:.1f} {y:.1f})" '
+                             f'fill="{stops[1]}" opacity=".9"/>')
+        body += f'<path d="{d}" fill="url(#{gid})" stroke="{ink}" stroke-opacity=".35" stroke-width="1.5"/>'
+        dash = ' stroke-dasharray="2 3"' if st["ring"] == "dashed" else ""
+        body += f'<circle cx="50" cy="48" r="29" fill="none" stroke="{ink}" stroke-opacity=".3" stroke-width="1.5"{dash}/>'
+        if st["ring"] == "double":
+            body += f'<circle cx="50" cy="48" r="25.5" fill="none" stroke="{ink}" stroke-opacity=".2" stroke-width="1"/>'
+        for k in range(6):  # rank pips over the icon: filled up to the rank
+            a = math.radians(-90 + (k - 2.5) * 13)
+            x, y, on = 50 + 35 * math.cos(a), 48 + 35 * math.sin(a), k <= i
+            op = ".75" if on else ".2"
+            body += {"dots": f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2" fill="{ink}" opacity="{op}"/>',
+                     "bars": f'<rect x="{x - 1.2:.1f}" y="{y - 2.8:.1f}" width="2.4" height="5.6" rx="1" fill="{ink}" opacity="{op}" transform="rotate({(k - 2.5) * 13:.0f} {x:.1f} {y:.1f})"/>',
+                     "stars": f'<path d="M{x:.1f},{y - 2.8:.1f}L{x + .9:.1f},{y - .9:.1f}L{x + 2.8:.1f},{y:.1f}L{x + .9:.1f},{y + .9:.1f}L{x:.1f},{y + 2.8:.1f}L{x - .9:.1f},{y + .9:.1f}L{x - 2.8:.1f},{y:.1f}L{x - .9:.1f},{y - .9:.1f}Z" fill="{ink}" opacity="{op}"/>'}[st["pips"]]
+        body += icon(ic, 37, 34, 26, ink, 2.2).replace('<g ', '<g opacity=".8" ', 1)
+        rib = {"notch": "M2,80 H98 L93,88.5 L98,97 H2 L7,88.5Z", "flat": "M6,80 H94 Q97,80 97,83 V94 Q97,97 94,97 H6 Q3,97 3,94 V83 Q3,80 6,80Z",
+               "swallow": "M0,82 L10,80 H90 L100,82 L95,89 L100,96 L90,98 H10 L0,96 L5,89Z"}[st["ribbon"]]
+        body += (f'<path d="{rib}" fill="{ink}"/><text x="50" y="89.2" text-anchor="middle" dominant-baseline="middle" font-size="9" '
+                 f'data-fs="80" data-min="5" fill="{stops[0]}" style="font-family:var(--head);font-weight:700;letter-spacing:.04em">{e(title.upper())}</text>')
+        svg = (f'<svg viewBox="0 0 100 100" role=img aria-label="{e(title)}, rank {i + 1} of 6" '
+               f'style="transform:rotate({st["tilt"]}deg)">{body}</svg>')
+        return self.anim(f'<span class=emb>{svg}<small>{caption}</small></span>', t)
+
+    def achievements(self, items, t):
+        """GitHub-style badge grid: a coloured disc with its icon, a metal ring for the tier, an x2/x3 tag."""
+        cells = ""
+        for k, (name, hue, ic, tier, cap) in enumerate(items):
+            gid = self.uid("ag")
+            tag = f'<i style="background:{TIER_RINGS[tier]}">x{tier + 1}</i>' if tier else ""
+            svg = (f'<svg viewBox="0 0 64 64" aria-hidden=true><defs><linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="1">'
+                   f'<stop offset="0" stop-color="hsl({hue} 75% 64%)"/><stop offset="1" stop-color="hsl({hue + 25} 70% 38%)"/></linearGradient></defs>'
+                   f'<circle cx="32" cy="32" r="28" fill="url(#{gid})" stroke="{TIER_RINGS[tier]}" stroke-width="4"/>'
+                   f'<circle cx="32" cy="32" r="22" fill="none" stroke="#fff" stroke-opacity=".25"/>{icon(ic, 19, 19, 26, "#fff", 2.2)}</svg>')
+            cells += self.anim(f'<span>{svg}{tag}</span><b>{e(name)}</b><small>{e(cap)}</small>', t + k * .08, cls="ach")
+        return f"<div class=achs>{cells}</div>"
+
     def chart(self, values, labels, t):
         v, mx, n = self.r.choice(self.chart_v), max(values) or 1, len(values)
         o = self.order(n)
@@ -796,7 +855,13 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .radial{width:min(100%,340px,32svh);display:block;margin:1em auto}.radial line{stroke:var(--fg);stroke-linecap:var(--cap)}
 .radial text{fill:var(--fg);font-size:9px;text-anchor:middle;dominant-baseline:middle;opacity:.8}
 .draw{stroke-dasharray:100;stroke-dashoffset:0}.in .draw{animation:draw 1.4s var(--e) calc(var(--t) + var(--o,0) * 40ms) both}@keyframes draw{from{stroke-dashoffset:100}}
-.rank{display:inline-block;margin-top:.6em;padding:.35em 1em;border:2px solid var(--fg);border-radius:99px;font-size:15px;letter-spacing:.02em}
+/* badges */
+.emb{display:inline-flex;align-items:center;gap:14px;margin-top:.7em;text-align:left}.emb svg{width:116px;flex:none;overflow:visible;filter:drop-shadow(0 6px 14px #0005)}
+.emb small{font-size:14px;line-height:1.35;max-width:15em;opacity:.9}
+.achs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;margin:1.1em 0;text-align:center}
+.ach>span{position:relative;display:block;width:64px;margin:0 auto}.ach svg{display:block;width:64px;height:64px}
+.ach i{position:absolute;right:-8px;bottom:0;padding:1px 7px;border-radius:99px;font:800 12px/1.5 var(--body);font-style:normal;color:#1d1d22;box-shadow:0 2px 6px #0004}
+.ach b{display:block;margin-top:6px;font-size:13px;line-height:1.2}.ach small{display:block;font-size:11px;line-height:1.3;opacity:.75}
 /* guess */
 .guess{display:grid;gap:10px;margin:1.2em 0 .6em;text-align:left}
 .guess button{color:var(--fg);background:transparent;border:2px solid var(--fg);text-align:inherit;transition:all .35s}
@@ -993,17 +1058,73 @@ def smooth(pts, closed=False):
     return d + ("Z" if closed else "")
 
 
-# (yearly threshold, title): a rank for how much you listened and how far you roamed; a month's thresholds are 1/12
+# (yearly threshold, title, unit): a rank for how much you listened and how far you roamed (year recaps only)
 TIME_RANKS = [(0, "Casual Listener"), (5000, "Daily Commuter"), (15000, "Headphone Regular"), (30000, "Certified Audiophile"),
               (60000, "Human Jukebox"), (100000, "Never Takes Them Off")]
 EXPLORE_RANKS = [(0, "Homebody"), (50, "Weekend Wanderer"), (150, "Crate Digger"), (400, "Cartographer"),
                  (800, "Globetrotter"), (1500, "Interdimensional Traveller")]
+# rank 1..6: bronze, silver, gold, platinum, diamond, holographic (gradient stops, light to dark)
+METALS = [["#f0b27a", "#b06a2c", "#7a4318"], ["#f4f6f8", "#b8c0c8", "#7d8791"], ["#ffe48a", "#e0a81e", "#9c6b00"],
+          ["#ffffff", "#d7dde3", "#9aa6b2"], ["#e9fdff", "#8fe3f2", "#3fa9c4"],
+          ["#ffd1f0", "#c8b6ff", "#9ee7ff", "#b6ffcf", "#fff1a8"]]
+TIER_RINGS = ["#cd7f32", "#c3cad2", "#f2c94c"]  # monthly achievements: bronze, silver (x2), gold (x3)
+# 24-unit line icons, drawn in currentColor
+ICONS = {
+    "headphones": '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="7" rx="1.8"/><rect x="16.5" y="14" width="4.5" height="7" rx="1.8"/>',
+    "compass": '<circle cx="12" cy="12" r="9.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z" fill="currentColor"/>',
+    "moon": '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/>',
+    "sun": '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+    "repeat": '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/>',
+    "spiral": '<path d="M12 12a1.5 1.5 0 1 1 1.5 1.5A3 3 0 1 1 16.5 10.5 4.5 4.5 0 1 1 12 6a6 6 0 1 1-6 6 7.5 7.5 0 0 1 7.5-7.5"/>',
+    "flame": '<path d="M12 2.5c1 3.5 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0c0-3 1.8-4.5 2.2-7 1 1.8 2 2.8 3.3 3.2-.4-2.6-.8-4.8 0-7.2z"/>',
+    "hourglass": '<path d="M6 2.5h12M6 21.5h12M7.5 2.5v3.5L12 12l-4.5 6v3.5M16.5 2.5v3.5L12 12l4.5 6v3.5"/>',
+    "wave": '<path d="M3 12h1.5M7 8.5v7M11 4.5v15M15 7v10M19 10v4M21.5 12H21"/>',
+    "heart": '<path d="M12 20.5s-8-5.2-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 5.6-8 10.8-8 10.8z"/>',
+    "calendar": '<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M15 13h3v3h-3z" fill="currentColor"/>',
+}
 
 
-def rank(value, ladder, month=None):
-    """'Rank 3/6 · Crate Digger' badge text for value on a ladder."""
-    i = max(j for j, (t, _) in enumerate(ladder) if value >= t / (12 if month else 1))
-    return f"Rank {i + 1}/{len(ladder)} · <b>{ladder[i][1]}</b>"
+def icon(name, x, y, size, color, width=2):
+    """An ICONS glyph as an SVG group, top-left at x, y."""
+    return (f'<g transform="translate({x:.1f} {y:.1f}) scale({size / 24:.3f})" fill="none" stroke="{color}" stroke-width="{width}" '
+            f'stroke-linecap="round" stroke-linejoin="round" color="{color}">{ICONS[name]}</g>')
+
+
+def rank_of(value, ladder):
+    return max(j for j, (t, _) in enumerate(ladder) if value >= t)
+
+
+def achievements(s):
+    """Monthly badges, GitHub-achievement style: [(name, hue, icon, tier 0..2, caption)] for each one earned."""
+    h, wd, se = s["hours"], s["weekdays"], s.get("session")
+    ses_h = (se["end"] - se["start"]).total_seconds() / 3600 if se else 0
+    defs = [  # name, hue, icon, value, (bronze, silver, gold), caption; Time Traveller counts down
+        ("Night Owl", 250, "moon", sum(h[0:5]), (15, 50, 120), "{v:,} plays after midnight"),
+        ("Early Bird", 40, "sun", sum(h[5:9]), (15, 50, 120), "{v:,} plays before 9am"),
+        ("On Repeat", 320, "repeat", (s.get("loop") or {}).get("n", 0), (5, 10, 20), "one song {v} times in a row"),
+        ("Deep Diver", 200, "spiral", ses_h, (3, 5, 8), "a {v:.1f} hour session"),
+        ("Explorer", 160, "compass", s["n_new"], (5, 15, 40), "{v} new artists"),
+        ("On Fire", 10, "flame", s["streak"], (7, 14, 25), "{v} days in a row"),
+        ("Marathoner", 280, "headphones", s["minutes"], (1500, 3000, 6000), "{v:,} minutes"),
+        ("Ride or Die", 345, "heart", s.get("loyalty", 0) * 100, (50, 70, 85), "{v:.0f}% on the top 5"),
+        ("Weekend Warrior", 120, "calendar", (wd[5] + wd[6]) / max(1, sum(wd)) * 100 if sum(wd) >= 50 else 0, (40, 50, 60), "{v:.0f}% on weekends"),
+        ("Audiophile", 185, "wave", s.get("lossless", 0) * 100 if s.get("formats") and s["formats"][0][0] != "?" else 0, (50, 80, 95), "{v:.0f}% lossless"),
+    ]
+    out = [(n, hue, ic, sum(v >= x for x in th) - 1, cap.format(v=v)) for n, hue, ic, v, th, cap in defs if v >= th[0]]
+    yrs = s.get("years") or []
+    if len(yrs) >= 20 and s["median_year"] <= 2000:
+        out.append(("Time Traveller", 30, "hourglass", sum(s["median_year"] <= x for x in (2000, 1990, 1980)) - 1, f"median year {s['median_year']}"))
+    return out
+
+
+ACHIEVEMENT_COUNT = 11
+
+
+def rank_badge(g, value, ladder, ic, unit, t):
+    i = rank_of(value, ladder)
+    nxt = (f"Next: <b>{ladder[i + 1][1]}</b> at {ladder[i + 1][0]:,} {unit}" if i + 1 < len(ladder)
+           else "Top rank. Nowhere left to climb.")
+    return g.emblem(i, ladder[i][1], ic, t, f"<b>Rank {i + 1} of {len(ladder)}</b><br>{nxt}")
 
 
 def gap(days):
@@ -1032,7 +1153,7 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.number(s["minutes"], t),
             lambda t: g.text("minutes listened", t),
             lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub"),
-            lambda t: g.text(f"<span class=rank>{rank(s['minutes'], TIME_RANKS, month)}</span>", t)]),
+        ] + ([] if month else [lambda t: rank_badge(g, s["minutes"], TIME_RANKS, "headphones", "minutes", t)])),
     ]
     fits = [(s["minutes"] / m, what) for m, what in THINGS if 3 <= s["minutes"] / m <= 9999]
     if fits:
@@ -1068,7 +1189,7 @@ def render(s, year, media=None, seed=None, month=None):
     slides.append(("explore", "You explored", [
         lambda t: g.number(s["n_artists"], t), lambda t: g.text("artists", t),
         lambda t: g.text(f"{s['n_tracks']:,} tracks · {s['n_albums']:,} albums", t, "sub"),
-        lambda t: g.text(f"<span class=rank>{rank(s['n_artists'], EXPLORE_RANKS, month)}</span>", t)]))
+        ] + ([] if month else [lambda t: rank_badge(g, s["n_artists"], EXPLORE_RANKS, "compass", "artists", t)])))
     if s["new"]:
         slides.append(("new", f"New to you in {period}", [
             lambda t: g.number(s["n_new"], t, s["n_new"] / max(1, s["n_artists"])), lambda t: g.text("artists discovered", t),
@@ -1135,6 +1256,10 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.headline(f"{s['lossless'] * 100:.0f}%", t), lambda t: g.text("of your plays were lossless", t),
             lambda t: g.ranks([(e(f.upper()), n) for f, n in s["formats"]], t)]
             + ([lambda t: g.text(f"Average bitrate: {s['bitrate']:,} kbps", t, "sub")] if s["bitrate"] else [])))
+    if month and (earned := achievements(s)):
+        slides.append(("badges", "Badges earned", [
+            lambda t: g.headline(f"{len(earned)} of {ACHIEVEMENT_COUNT}", t), lambda t: g.text(f"badges unlocked in {period}", t),
+            lambda t: g.achievements(sorted(earned, key=lambda x: -x[3]), t)]))
     if s["lib_songs"]:
         slides.append(("library", "Your Navidrome library", [
             lambda t: g.number(s["lib_songs"], t, lib_frac), lambda t: g.text("songs", t),

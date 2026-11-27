@@ -9,18 +9,20 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from design import REPO, Gen, e, font_face, render  # noqa: E402
-from wrapped import compute  # noqa: E402
+from wrapped import compute, past, period_range, prev_start  # noqa: E402
 
-SEEDS = [204, 245, 222, 207, 206, 212, 203, 215]  # one per card layout, varied fonts, light and dark; any seed works
 YEAR = datetime.now().year
+SEEDS = [204, 245, 222, 207, 206, 212, 203, 215]  # one per card layout, varied fonts, light and dark; any seed works
+MONTH, MONTH_SEED = 5, 215  # the monthly demo: May (a long night session and a song on repeat), in a light design
+MONTH_SLUG, MONTH_NAME = f"{YEAR}-{MONTH:02d}", f"{datetime(YEAR, MONTH, 1):%B %Y}"
 ARTISTS = ["Velvet Static", "Mara Lune", "The Paper Orchards", "Koji & The Tides", "Saint Ofelia", "Northbound Choir",
            "Ash Lantern", "Dune Parade", "Ilse Varga", "Low Orbit Club", "Hollow Pines", "Tamsin Okafor"]
 GENRES = ["Indie Pop", "Electronic;Ambient", "Dream Pop", "Hip-Hop", "Jazz", "Post-Punk"]
 TITLES = ["Glasshouse", "Slow Satellites", "Paper Moon", "Undertow", "Night Bus", "Honey & Smoke", "Lighthouse Hours", "Static Bloom"]
 
 
-def demo_stats():
-    """A plausible year of listening: skewed towards a few favourites, more at night, a summer peak."""
+def demo_stats(month=None):
+    """A plausible year of listening: skewed towards a few favourites, more at night, a summer peak. month: just that month of it."""
     r, listens, t0 = random.Random(7), [], datetime(YEAR, 1, 1).timestamp()
     for _ in range(4200):
         a = ARTISTS[min(int(r.expovariate(.35)), len(ARTISTS) - 1)]
@@ -44,6 +46,10 @@ def demo_stats():
     listens.sort(key=lambda l: l["ts"])
     last = {ARTISTS[0].lower(): t0 - 86400, ARTISTS[2].lower(): t0 - 86400, ARTISTS[5].lower(): t0 - 800 * 86400}
     prev = {a.lower(): [a, n] for a, n in zip(ARTISTS, [900, 120, 500, 60, 400, 10, 300, 20, 30, 200, 15, 5])}
+    if month:  # the month as the app would see it: April as the period before, every earlier listen for "new" and comebacks
+        start, end = period_range(YEAR, month)
+        p = past((l for l in listens if l["ts"] < start), prev_start(YEAR, month))
+        return compute([l for l in listens if start <= l["ts"] <= end], library, {**last, **p["last"]}, p["prev"], start, end)
     return compute(listens, library, last, prev, int(t0), int(datetime(YEAR + 1, 1, 1).timestamp()) - 1)
 
 
@@ -221,6 +227,7 @@ ND_PASS=..."""
 TOUR = [("intro", "Every minute, counted", "Minutes listened, plays, active days and how many full days of audio that adds up to. It opens on a spinning record that gets every slide ready, then starts your music when you tap."),
         ("artist", "Your top artists, songs and albums", "Ranked as a podium, tiles, a word cloud, a ticker or a list, depending on the design. Each slide plays a matching song from your own Navidrome library."),
         ("new", "Who you discovered", "Artists you'd never played before this period, checked against your entire listening history, with your biggest find up front."),
+        ("explore", "Badges to brag about", "Year recaps rank you with an emblem drawn for that design. Month recaps unlock achievements in bronze, x2 and x3."),
         ("hour", "When you listen", "Your peak hour, your busiest weekdays and your peak month, drawn as bars, dots, lines, heatmaps or radial charts."),
         ("streak", "Streaks and your library", "Your longest run of days with music, your biggest day, and stats from your Navidrome server: songs, starred, never played, all-time favourites."),
         ("summary", "A card made to share", "Everything on one summary card in one of six layouts. Save it as an image, exactly as it looks, or share the link to the whole recap.")]
@@ -280,6 +287,7 @@ def landing(s):
 <section data-p=through style="--acc:{acc[5]}"><div class=wrap><div class=reveal><p class=kicker>Always up to date</p><h2>Every month, every year, and all the ones before</h2>
 <p class=sub>A recap of each month arrives on the 1st of the next one, and the full year on January 1. On first start it also builds every past month and year in your history, back to your very first listen.</p></div>
 <div class=tl aria-hidden=true>{months}</div>
+<p class="cta reveal" style="margin:0 0 30px"><a class="btn alt" href="demo/{MONTH_SLUG}/">▶ Watch a month: {MONTH_NAME}</a></p>
 <div class=modes><div class=reveal><code>REFRESH=both</code><p>The default: every month and every year.</p></div><div class=reveal style="--d:1"><code>REFRESH=monthly</code><p>Just the months.</p></div><div class=reveal style="--d:2"><code>REFRESH=yearly</code><p>Just one big recap a year.</p></div></div></div></section>
 <section style="--acc:{acc[6]}"><div class=wrap><div class=reveal><p class=kicker>Made for phones</p><h2>Built to be watched on a phone</h2></div><div class=feat>{feats}</div></div></section>
 <section style="--acc:{acc[7]}"><div class="wrap private"><div class=reveal><p class=kicker>Private by design</p><h2>Your listening stays home</h2></div>
@@ -302,10 +310,13 @@ def main():
         os.makedirs(f"{out}/demo/{seed}", exist_ok=True)
         with open(f"{out}/demo/{seed}/index.html", "w") as f:
             f.write(render(s, YEAR, {}, seed))
+    os.makedirs(f"{out}/demo/{MONTH_SLUG}", exist_ok=True)
+    with open(f"{out}/demo/{MONTH_SLUG}/index.html", "w") as f:
+        f.write(render(demo_stats(MONTH), YEAR, {}, MONTH_SEED, MONTH))
     with open(f"{out}/index.html", "w") as f:
         f.write(landing(s))
     open(f"{out}/.nojekyll", "w").close()
-    print(f"site -> {out}/ ({len(SEEDS)} demo recaps)")
+    print(f"site -> {out}/ ({len(SEEDS)} demo recaps + {MONTH_SLUG})")
 
 
 if __name__ == "__main__":
