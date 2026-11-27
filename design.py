@@ -796,6 +796,7 @@ small{opacity:.85}.lbl{display:block;opacity:.9}.lbl b{font-weight:inherit;opaci
 .radial{width:min(100%,340px,32svh);display:block;margin:1em auto}.radial line{stroke:var(--fg);stroke-linecap:var(--cap)}
 .radial text{fill:var(--fg);font-size:9px;text-anchor:middle;dominant-baseline:middle;opacity:.8}
 .draw{stroke-dasharray:100;stroke-dashoffset:0}.in .draw{animation:draw 1.4s var(--e) calc(var(--t) + var(--o,0) * 40ms) both}@keyframes draw{from{stroke-dashoffset:100}}
+.rank{display:inline-block;margin-top:.6em;padding:.35em 1em;border:2px solid var(--fg);border-radius:99px;font-size:15px;letter-spacing:.02em}
 /* guess */
 .guess{display:grid;gap:10px;margin:1.2em 0 .6em;text-align:left}
 .guess button{color:var(--fg);background:transparent;border:2px solid var(--fg);text-align:inherit;transition:all .35s}
@@ -889,7 +890,9 @@ const io=new IntersectionObserver(es=>es.forEach(en=>{
 secs.forEach(s=>io.observe(s));
 // guess slides: tap an answer, the right one lights up, then on to the reveal
 document.querySelectorAll('.guess button').forEach(b=>b.onclick=()=>{const g=b.parentNode;if(g.classList.contains('done'))return;
-  b.classList.add('picked');g.classList.add('done');g.nextElementSibling.firstChild.textContent=b.dataset.ok?'Nailed it: ':'Nope. It was ';setTimeout(()=>go(1),1800)});
+  b.classList.add('picked');g.classList.add('done');g.nextElementSibling.firstChild.textContent=b.dataset.ok?'Nailed it: ':'Nope. It was ';
+  // move on by itself, unless they already did: a tap during the reveal plus this would skip the next slide
+  const sec=b.closest('section');setTimeout(()=>{if(tgt==null&&active===sec)go(1)},1800)});
 function setSound(on){sound=on;mute.textContent=on?'🔊':'🔇';mute.setAttribute('aria-label',on?'Mute':'Unmute');play(active);wake()}
 mute.onclick=()=>setSound(!sound);
 // loading screen: everything a slide needs is ready before the first one shows, so nothing pops in or hitches mid-animation
@@ -990,6 +993,19 @@ def smooth(pts, closed=False):
     return d + ("Z" if closed else "")
 
 
+# (yearly threshold, title): a rank for how much you listened and how far you roamed; a month's thresholds are 1/12
+TIME_RANKS = [(0, "Casual Listener"), (5000, "Daily Commuter"), (15000, "Headphone Regular"), (30000, "Certified Audiophile"),
+              (60000, "Human Jukebox"), (100000, "Never Takes Them Off")]
+EXPLORE_RANKS = [(0, "Homebody"), (50, "Weekend Wanderer"), (150, "Crate Digger"), (400, "Cartographer"),
+                 (800, "Globetrotter"), (1500, "Interdimensional Traveller")]
+
+
+def rank(value, ladder, month=None):
+    """'Rank 3/6 · Crate Digger' badge text for value on a ladder."""
+    i = max(j for j, (t, _) in enumerate(ladder) if value >= t / (12 if month else 1))
+    return f"Rank {i + 1}/{len(ladder)} · <b>{ladder[i][1]}</b>"
+
+
 def gap(days):
     """'2 years, 3 months' / '14 months'-ish, for comebacks."""
     y, m = divmod(round(days / 30.44), 12)
@@ -1015,7 +1031,8 @@ def render(s, year, media=None, seed=None, month=None):
         ("intro", f"Your {period} in music", [
             lambda t: g.number(s["minutes"], t),
             lambda t: g.text("minutes listened", t),
-            lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub")]),
+            lambda t: g.text(f"{s['plays']:,} plays · {s['active_days']} active days · {s['minutes'] / 60 / 24:.1f} days of audio", t, "sub"),
+            lambda t: g.text(f"<span class=rank>{rank(s['minutes'], TIME_RANKS, month)}</span>", t)]),
     ]
     fits = [(s["minutes"] / m, what) for m, what in THINGS if 3 <= s["minutes"] / m <= 9999]
     if fits:
@@ -1050,7 +1067,8 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.ranks([(artist_item(k), n) for k, n in s["albums"][1:10]], t)]))
     slides.append(("explore", "You explored", [
         lambda t: g.number(s["n_artists"], t), lambda t: g.text("artists", t),
-        lambda t: g.text(f"{s['n_tracks']:,} tracks · {s['n_albums']:,} albums", t, "sub")]))
+        lambda t: g.text(f"{s['n_tracks']:,} tracks · {s['n_albums']:,} albums", t, "sub"),
+        lambda t: g.text(f"<span class=rank>{rank(s['n_artists'], EXPLORE_RANKS, month)}</span>", t)]))
     if s["new"]:
         slides.append(("new", f"New to you in {period}", [
             lambda t: g.number(s["n_new"], t, s["n_new"] / max(1, s["n_artists"])), lambda t: g.text("artists discovered", t),
