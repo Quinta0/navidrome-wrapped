@@ -107,7 +107,9 @@ site = tempfile.mkdtemp()
 assert missing(site, first, "both", now) == [(2025, 11), (2025, 12), (2026, 1), (2025, None)]
 assert missing(site, first, "yearly", now) == [(2025, None)]
 os.makedirs(f"{site}/2025-12"); open(f"{site}/2025-12/index.html", "w").write("x")
-assert missing(site, first, "monthly", now) == [(2025, 11), (2026, 1)]  # already built: skipped
+assert missing(site, first, "monthly", now) == [(2025, 11), (2025, 12), (2026, 1)]  # built before badges: rebuilt
+open(f"{site}/2025-12/meta.json", "w").write('{"badges": null}')
+assert missing(site, first, "monthly", now) == [(2025, 11), (2026, 1)]  # up to date: skipped
 # whole flow on fake history: one recap per past month, artists from earlier months aren't "new"
 hist = [{"ts": int(datetime(2025, 11, 3).timestamp()), "artist": "Old", "title": "a", "album": "x", "secs": 200},
         {"ts": int(datetime(2025, 12, 3).timestamp()), "artist": "Old", "title": "a", "album": "x", "secs": 200},

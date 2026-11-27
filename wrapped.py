@@ -379,8 +379,17 @@ def build(year, month, listens, prior, library, nd, out, seed=None):
     print(f"{len(listens)} listens -> {out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
 
 
+def built_meta(site, y, m):
+    """meta.json of an up-to-date recap in site, else None (not built, or built before meta.json carried badges)."""
+    try:
+        meta = json.load(open(os.path.join(site, slug(y, m), "meta.json")))
+    except (OSError, ValueError):
+        return None
+    return meta if "badges" in meta and os.path.isfile(os.path.join(site, slug(y, m), "index.html")) else None
+
+
 def missing(site, first_ts, mode, now=None, empty=()):
-    """Finished periods since the first listen with no recap in site yet. mode: monthly, yearly or both (REFRESH).
+    """Finished periods since the first listen with no up-to-date recap in site yet. mode: monthly, yearly or both (REFRESH).
     empty: slugs known to have no listens (gaps in the history), which never get a recap."""
     now, d = now or datetime.now(), datetime.fromtimestamp(first_ts)
     out = []
@@ -391,7 +400,7 @@ def missing(site, first_ts, mode, now=None, empty=()):
             y, m = y + m // 12, m % 12 + 1
     if mode != "monthly":
         out += [(y, None) for y in range(d.year, now.year)]
-    return [p for p in out if slug(*p) not in empty and not os.path.isfile(os.path.join(site, slug(*p), "index.html"))]
+    return [p for p in out if slug(*p) not in empty and not built_meta(site, *p)]
 
 
 def backfill(env, site, mode, library, nd, seed=None):
@@ -414,8 +423,12 @@ def backfill(env, site, mode, library, nd, seed=None):
     json.dump({"first": listens[0]["ts"], "empty": [slug(y, m) for y, m, *_ in empty]}, open(path, "w"))
     print(f"backfill: building {len(todo)} past recaps" + (f", skipping {len(empty)} without listens" if empty else ""))
     for y, m, start, inside in todo:
+        try:  # an outdated recap keeps its design when rebuilt
+            old = json.load(open(os.path.join(site, slug(y, m), "meta.json"))).get("seed")
+        except (OSError, ValueError):
+            old = None
         prior = past((l for l in listens if l["ts"] < start), prev_start(y, m))
-        build(y, m, inside, prior, library, nd, os.path.join(site, slug(y, m)), seed)
+        build(y, m, inside, prior, library, nd, os.path.join(site, slug(y, m)), seed if seed is not None else old)
         build_index(site)  # each one shows up on the overview as soon as it's done
 
 
