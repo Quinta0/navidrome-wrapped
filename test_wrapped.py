@@ -71,6 +71,7 @@ assert not any(x in nov for x in ("Loyalty score", "Audiophile check", "Time mac
 yr = render(s2, 2026, seed=3)
 assert yr.count("class=emb") == 2 and "Badges earned" not in yr and "Next: <b>Daily Commuter</b>" in yr
 assert "Loyalty score" in yr and "Audiophile check" in yr and yr.count("CASUAL LISTENER") == 2  # slide emblem + card emblem
+assert "Your signature" in yr and "class=stamp" in yr and "class=coin" in yr and "Your signature" not in nov  # year only: badge slide + card stamp
 assert nov.count("CASUAL LISTENER") == 0 and 'viewBox="0 0 400 712"' in yr and 'viewBox="0 0 400 660"' in nov
 s3 = compute([dict(l) for l in seq], lib2, p["last"], p["prev"], int(datetime(2026, 5, 1).timestamp()), int(datetime(2026, 6, 1).timestamp()) - 1)
 assert abs(s3["trend"] - (16 / 2 - 1)) < 1e-9, s3["trend"]  # 16 plays vs 2 in April, May is over

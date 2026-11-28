@@ -297,7 +297,7 @@ def compute(listens, library, last=None, prev=None, start=None, end=None):
         "plays": len(listens), "minutes": round(secs / 60),
         "artists": artists.most_common(10), "tracks": tracks.most_common(10), "albums": albums.most_common(10),
         "n_artists": len(artists), "n_tracks": len(tracks), "n_albums": len(albums),
-        "new": new[:10], "n_new": len(new), "genres": genres.most_common(8),
+        "new": new[:10], "n_new": len(new), "genres": genres.most_common(8), "n_genres": len(genres),
         "months": months, "hours": hours, "peak_month": peak_m, "peak_hour": peak_h,
         "weekdays": [sum(1 for l in listens if l["when"].weekday() == d) for d in range(7)],
         "streak": longest_streak(days), "active_days": len(days), "top_day": top_day,
@@ -374,18 +374,18 @@ def build(year, month, listens, prior, library, nd, out, seed=None):
                "cover": (media.get("artist") or media.get("summary") or {}).get("cover"), "partial": end > time.time(), "seed": seed,
                # a month's badges for its overview card; the year's card rolls them up from these
                "badges": [[n, hue, ic, tier] for n, hue, ic, tier, _ in achievements(stats)] if month and listens else None,
-               "ranks": card_badges(stats) if not month and listens else None},  # the year's rank emblems for its card
+               "ranks": card_badges(stats) if not month and listens else None, "sig": 1},  # the year's rank emblems for its card
               open(os.path.join(out, "meta.json"), "w"))
     print(f"{len(listens)} listens -> {out}/index.html (design seed {seed}, set THEME_SEED to keep it)")
 
 
 def built_meta(site, y, m):
-    """meta.json of an up-to-date recap in site, else None (not built, or built before meta.json carried badges)."""
+    """meta.json of an up-to-date recap in site, else None (not built, or built before meta.json carried badges / a year its signature badge)."""
     try:
         meta = json.load(open(os.path.join(site, slug(y, m), "meta.json")))
     except (OSError, ValueError):
         return None
-    return meta if "badges" in meta and os.path.isfile(os.path.join(site, slug(y, m), "index.html")) else None
+    return meta if "badges" in meta and (m or "sig" in meta) and os.path.isfile(os.path.join(site, slug(y, m), "index.html")) else None
 
 
 def missing(site, first_ts, mode, now=None, empty=()):

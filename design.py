@@ -436,7 +436,14 @@ class Gen:
                    + f'<textPath href="#cring" textLength="804" lengthAdjust="spacing" data-unit="{e(unit)}">{e(ring_txt)}</textPath></text>'
                    + self._art(d, 132, 107, 136, 136, circle=True) + f'<circle cx="200" cy="175" r="5" fill="{c["bg"]}"/></g>')
             spots = [(352, 292), (48, 292)]
-        sticker = self._sticker(*r.choice(spots), d["value"]) if c["sticker"] else ""
+        spot = r.choice(spots) if c["sticker"] else None
+        sticker = self._sticker(*spot, d["value"]) if spot else ""
+        stamp = ""
+        if d.get("sig"):  # the signature badge, stamped in a top corner clear of the sticker (and of the band's year column)
+            right = (L == "band" or (spot[0] < W / 2 if spot and spot[1] < 150 else random.Random(f"sig{self.seed}c").random() < .5))
+            x, tilt = (W - 88 if right else 8), random.Random(f"sig{self.seed}t").randint(-14, 14)
+            stamp = (f'<g transform="rotate({tilt} {x + 40} 48)"><g class=stamp><svg x="{x}" y="8" width="80" height="80" viewBox="0 0 100 100" overflow="visible">'
+                     f'<circle cx="50" cy="52" r="48" fill="#000" opacity=".28"/>{self.signature_body(d["sig"])}</svg></g></g>')
         # info block
         y, col, cw = info_y, [22, 208], 170
         info = ""
@@ -465,7 +472,7 @@ class Gen:
         label = f"{self.year} summary: top artist {d['artists'][0]}, top song {d['songs'][0]}, {d['minutes']:,} minutes"
         return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" style="border-radius:{c['radius']}px" role="img" aria-label="{e(label)}">'
                 f'<defs>{pat}<clipPath id=cclip><rect width="{W}" height="{H}" rx="{c["radius"]}"/></clipPath></defs>'
-                f'<g clip-path="url(#cclip)"><rect width="{W}" height="{H}" fill="{c["bg"]}"/>{top}{sticker}{info}{foot}</g></svg>')
+                f'<g clip-path="url(#cclip)"><rect width="{W}" height="{H}" fill="{c["bg"]}"/>{top}{sticker}{info}{foot}{stamp}</g></svg>')
 
     def root_css(self):
         r = self.r
@@ -609,6 +616,58 @@ class Gen:
         body += (f'<path d="{rib}" fill="{ink}"/><text x="50" y="89.2" text-anchor="middle" dominant-baseline="middle" font-size="{min(9, 80 / (.68 * max(1, len(title)))):.1f}" '
                  f'data-fs="80" data-min="5" fill="{stops[0]}" font-family="{e(self.head_ff)}" font-weight="700" letter-spacing=".4">{e(title.upper())}</text>')
         return body
+
+    def signature_body(self, st):
+        """The year's one-of-one badge in a 100x100 box. Stats shape it: minutes the metal and rim teeth, genres the rosette lobes,
+        albums its layered curves, artists the stars of the constellation; the seed picks rim, sigil, hues and every jitter."""
+        rs = random.Random(f"sig{self.seed}")  # own stream: the rest of the design is unchanged
+        mins, ng, na, nal = st["minutes"], st["genres"], st["artists"], st["albums"]
+        stops, hue, ink = METALS[rank_of(mins, TIME_RANKS)], rs.randrange(360), "#1d1d22"
+        gid, top, bot = self.uid("sg"), self.uid("sg"), self.uid("sg")
+        grad = "".join(f'<stop offset="{k / (len(stops) - 1):.2f}" stop-color="{c}"/>' for k, c in enumerate(stops))
+        pt = lambda r, a: f"{50 + r * math.cos(a):.2f},{50 + r * math.sin(a):.2f}"
+        n, off = 20 + min(40, mins // 2000), rs.uniform(0, math.pi)
+        rim = rs.choice(["scallop", "gear", "sun", "bead"])
+        step = 2 * math.pi / n
+        if rim == "bead":
+            edge = f'<circle cx="50" cy="50" r="46.5" fill="url(#{gid})"/>' + "".join(
+                '<circle cx="{}" cy="{}" r="1.7" fill="url(#{})"/>'.format(*pt(47, off + j * step).split(","), gid) for j in range(n))
+        else:
+            hi, lo, prof = {"scallop": (49, 46.5, (0, .5)), "sun": (49.5, 45, (0, .5)), "gear": (49, 46, (0, .45, .5, .95))}[rim]
+            ring = [hi, lo] if len(prof) == 2 else [hi, hi, lo, lo]
+            edge = f'<path d="M{" L".join(pt(ring[i], off + (j + f) * step) for j in range(n) for i, f in enumerate(prof))}Z" fill="url(#{gid})"/>'
+        body = (f'<defs><linearGradient id="{gid}" x1="0" y1="0" x2="1" y2="1">{grad}</linearGradient>'
+                f'<path id="{top}" d="M10,50 A40,40 0 0 1 90,50"/><path id="{bot}" d="M5.5,50 A44.5,44.5 0 0 0 94.5,50"/></defs>'
+                f'<g stroke="{ink}" stroke-opacity=".35" stroke-width="1">{edge}</g>'
+                f'<circle cx="50" cy="50" r="38.6" fill="none" stroke="{ink}" stroke-opacity=".4" stroke-width=".8"/>')
+        # guilloche rosette: one lobe per genre, one layered curve per doubling of albums
+        k, m = max(3, min(16, ng)), max(2, min(8, math.ceil(math.log2(nal + 1))))
+        b, q = rs.uniform(.5, 2.5), rs.choice([2, 3])
+        curves = ""
+        for j in range(m):
+            rot = j * 2 * math.pi / k / m
+            curves += "M" + " L".join(pt(20 + 7 * math.sin(k * (a - rot)) + b * math.sin(q * k * (a - rot)), a)
+                                      for a in (i * math.pi / 120 for i in range(240))) + "Z"
+        body += (f'<g class=gl><path d="{curves}" fill="none" stroke="hsl({hue} 55% 28%)" stroke-opacity=".55" stroke-width=".45"/>'
+                 f'<circle cx="50" cy="50" r="30.5" fill="none" stroke="{ink}" stroke-opacity=".25" stroke-width=".5" stroke-dasharray=".6 1.2"/></g>')
+        # constellation: a star per ~artist^2, joined in order around the band
+        stars = sorted((rs.uniform(0, 2 * math.pi), rs.uniform(32.5, 36.5), rs.uniform(.5, 1.3)) for _ in range(max(4, min(36, round(na ** .5)))))
+        body += (f'<path d="M{" L".join(pt(r, a) for a, r, _ in stars)}" fill="none" stroke="{ink}" stroke-opacity=".35" stroke-width=".35"/>'
+                 + "".join('<circle cx="{}" cy="{}" r="{:.2f}" fill="{}" opacity=".7"/>'.format(*pt(r, a).split(","), z, ink) for a, r, z in stars))
+        # the sigil on its seal
+        sig = SIGILS[rs.choice(sorted(SIGILS))]
+        body += (f'<circle cx="50" cy="50" r="11.5" fill="{ink}"/><circle cx="50" cy="50" r="9.8" fill="none" stroke="hsl({hue} 80% 72%)" stroke-opacity=".5" stroke-width=".5"/>'
+                 f'<path d="{sig}" fill="hsl({hue} 85% 74%)" fill-rule="evenodd" transform="translate(41.6 41.6) scale(.7)"/>')
+        tl = f"{st['year']} · {mins:,} MIN"
+        bl = f"{ng} GENRES · {na:,} ARTISTS · {nal:,} ALBUMS"
+        txt = lambda pid, t, fs: (f'<text font-size="{fs:.2f}" font-family="{e(self.head_ff)}" font-weight="700" letter-spacing=".5" fill="{ink}" fill-opacity=".8" '
+                                  f'text-anchor="middle"><textPath href="#{pid}" startOffset="50%">{e(t)}</textPath></text>')
+        return body + txt(top, tl, min(5.2, 100 / (.75 * len(tl)))) + txt(bot, bl, min(4.6, 118 / (.75 * len(bl))))
+
+    def signature(self, st, t):
+        """The badge on its slide: it spins in like a GitHub achievement, and again on hover."""
+        svg = f'<svg viewBox="0 0 100 100" role=img aria-label="Your {e(st["year"])} signature badge">{self.signature_body(st)}</svg>'
+        return self.anim(f'<div class=sig><div class=coin>{svg}</div><i class=shine></i></div>', t)
 
     def achievements(self, items, t):
         """GitHub-style badge grid: a coloured disc with its icon, a metal ring for the tier, an x2/x3 tag."""
@@ -892,6 +951,17 @@ button:hover{transform:scale(1.06)}button:focus-visible{outline:3px solid var(--
   #dots{top:calc(8px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));transform:none;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
   #dots i,#dots i.on{width:auto;height:3px}#dots i.past{background:color-mix(in srgb,var(--fg) 75%,transparent)}
   #mute{top:calc(20px + env(safe-area-inset-top))}}
+/* signature badge */
+.sig{position:relative;width:min(64vmin,320px);margin:.4em auto;perspective:900px}
+.coin{transform-style:preserve-3d}.coin svg{display:block;width:100%;overflow:visible;filter:drop-shadow(0 14px 22px #0007)}
+.in .coin{animation:coin 2.6s cubic-bezier(.15,.75,.25,1) .3s both}.coin:hover{animation:coin2 1.4s cubic-bezier(.15,.75,.25,1)}
+@keyframes coin{from{transform:rotateY(-1440deg) scale(.4);opacity:0}15%{opacity:1}}@keyframes coin2{from{transform:rotateY(-720deg)}}
+.in .sig .gl{transform-box:fill-box;transform-origin:center;animation:spin 60s linear infinite}
+.shine{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:overlay;opacity:0;
+  background:linear-gradient(115deg,transparent 35%,#fff 50%,transparent 65%) -150% 0/300% 100% no-repeat}
+.in .shine{animation:shine 1.2s ease-out 2.7s}@keyframes shine{from{opacity:1}to{opacity:1;background-position:150% 0}}
+.card .stamp{transform-box:fill-box;transform-origin:center}.in .card .stamp{animation:stamp .55s cubic-bezier(.3,1.6,.5,1) 1.5s both}
+@keyframes stamp{from{transform:scale(2.8) rotate(-25deg);opacity:0}60%{opacity:1}}
 /* summary card (SVG) */
 .card{width:min(400px,100%);margin:auto}.card svg{display:block;width:100%;height:auto;box-shadow:0 24px 40px #0007}
 .card .patmove,.card .sticker,.card .vinyl,.card .cart{transform-box:fill-box;transform-origin:center}
@@ -1076,6 +1146,21 @@ EXPLORE_RANKS = [(0, "Homebody"), (50, "Weekend Wanderer"), (150, "Crate Digger"
 METALS = [["#f0b27a", "#b06a2c", "#7a4318"], ["#f4f6f8", "#b8c0c8", "#7d8791"], ["#ffe48a", "#e0a81e", "#9c6b00"],
           ["#ffffff", "#d7dde3", "#9aa6b2"], ["#e9fdff", "#8fe3f2", "#3fa9c4"],
           ["#ffd1f0", "#c8b6ff", "#9ee7ff", "#b6ffcf", "#fff1a8"]]
+# the signature badge's centre glyphs, filled, in a 24 box
+SIGILS = {
+    "note": "M9 18a3 3 0 1 1-2-2.83V5l12-2.2v12a3 3 0 1 1-2-2.83V6.4l-8 1.5Z",
+    "bolt": "M13.5 2 4 14h6.5L9.5 22 20 9.5h-6.5Z",
+    "star": "M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6Z",
+    "eye": "M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12Zm10.5 4a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+    "crown": "M3 19 1.8 7.5l5.4 4.2L12 4l4.8 7.7 5.4-4.2L21 19Z",
+    "moon": "M20.5 14.8A9 9 0 1 1 9.2 3.5a7.2 7.2 0 0 0 11.3 11.3Z",
+    "heart": "M12 21.3S3 15.8 3 9.6A4.9 4.9 0 0 1 12 6.9a4.9 4.9 0 0 1 9 2.7c0 6.2-9 11.7-9 11.7Z",
+    "vinyl": "M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21Zm0 8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z",
+    "gem": "M6.5 3h11L22 9 12 21.5 2 9Z",
+    "wave": "M2 10h2v4H2Zm4-4h2v12H6Zm4 2h2v8h-2Zm4-6h2v20h-2Zm4 5h2v10h-2Z",
+    "flame": "M12 22c-4.4 0-7.5-3-7.5-7 0-4.3 3.6-6.4 4.6-11 2.6 1.6 3.1 4.4 2.9 6.2 1.1-.9 1.6-2.3 1.6-3.7 2.6 2 5.9 5.3 5.9 8.6 0 4-3.1 6.9-7.5 6.9Z",
+    "planet": "M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12ZM1.5 17.5c-.9-1.6 3.6-5.2 10-8.1s12.1-4 13-2.4l-1.7.6c-.6-.4-4.4.3-10.4 3.1S3.3 16.3 3.3 16.9Z",
+}
 TIER_RINGS = ["#cd7f32", "#c3cad2", "#f2c94c"]  # monthly achievements: bronze, silver (x2), gold (x3)
 # 24-unit line icons, drawn in currentColor
 ICONS = {
@@ -1133,6 +1218,10 @@ def card_badges(s):
     """The two year ranks as (rank, title, icon) for the summary card."""
     return [(rank_of(v, lad), lad[rank_of(v, lad)][1], ic) for v, lad, ic in
             ((s["minutes"], TIME_RANKS, "headphones"), (s["n_artists"], EXPLORE_RANKS, "compass"))]
+
+
+def signature_stats(s, year):
+    return {"year": year, "minutes": s["minutes"], "genres": s.get("n_genres", len(s["genres"])), "artists": s["n_artists"], "albums": s["n_albums"]}
 
 
 def rank_badge(g, value, ladder, ic, unit, t):
@@ -1283,6 +1372,12 @@ def render(s, year, media=None, seed=None, month=None):
             lambda t: g.text("All-time most played on your server:", t),
             lambda t: g.ranks([(artist_item((x.get("title"), x.get("artist"))), x.get("playCount", 0)) for x in s["lib_top"]], t)]))
 
+    sig = None if month else signature_stats(s, short)
+    if sig:
+        slides.append(("signature", "Your signature", [
+            lambda t: g.headline("One of one", t), lambda t: g.signature(sig, t),
+            lambda t: g.text(f"Drawn from your {sig['minutes']:,} minutes, {sig['genres']} genres, {sig['artists']:,} artists and "
+                             f"{sig['albums']:,} albums. No. {g.seed & 0xFFFFFF:06X}: nobody else has this one.", t, "sub")]))
     total = len(slides) + 1
     body = ""
     for i, (key, label, blocks) in enumerate(slides):
@@ -1294,7 +1389,7 @@ def render(s, year, media=None, seed=None, month=None):
     last_label, last_value = ("Top Genre", s["genres"][0][0]) if s["genres"] else ("New Artists", f"{s['n_new']:,}")
     d = {"year": short, "artists": [a for a, _ in s["artists"][:5]], "songs": [t for (t, _), _ in s["tracks"][:5]],
          "minutes": s["minutes"], "label": last_label, "value": last_value, "name": a1[0], "art": art,
-         "badges": None if month else card_badges(s)}
+         "badges": None if month else card_badges(s), "sig": sig}
     content = (f'<div class=a style="--m:{g.card_kf};--d:1.2s;--t:0s;--e:{g.eases[0]}"><div class=card>{g.card_svg(d)}</div></div>'
                + g.anim(f"<p class=save><button id=save data-year={slug}>⬇ Save image</button> <button id=share hidden>↗ Share</button></p><p class=own><a href=\"{REPO}\" target=_blank rel=noopener>Make your own Wrapped ↗</a></p>", .6))
     body += section(g, len(slides), "summary", content, media, decor=False)
