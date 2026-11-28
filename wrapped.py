@@ -282,6 +282,7 @@ def compute(listens, library, last=None, prev=None, start=None, end=None):
         "streak": pick(lambda l: top_day and l["when"].date() == top_day[0]),
         "library": lib_top[0] if lib_top and lib_top[0].get("playCount") else None, "badges": pick(),
         "guess": pick(),
+        "signature": by_id.get(first(Counter(sid for sid, _ in {(l["song"]["id"], l["when"].date()) for l in listens if l["song"]}))),  # played on the most days
         "loyalty": pick(lambda l: l["artist"] == top_artist[0]),
         "comeback": pick(lambda l: back and l["artist"] == back[0][0]),
         "rising": pick(lambda l: rising and l["artist"] == rising[0][0]),
